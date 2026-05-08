@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.fedchirp</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/dima/Desktop/fed_chirp/.venv/bin/python</string>
+        <string>-m</string>
+        <string>fed_chirp.cli</string>
+        <string>scan</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dima/Desktop/fed_chirp</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dima/Desktop/fed_chirp/data/fedchirp.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dima/Desktop/fed_chirp/data/fedchirp.err.log</string>
+
+    <!-- Mon-Fri at 18:30 local -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>
+    </array>
+</dict>
+</plist>

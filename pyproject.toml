@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fed_chirp"
+version = "0.1.0"
+description = "Monitors Federal Reserve Board governor speeches; scores hawkish/dovish tone via Claude; reports tone shifts."
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "feedparser>=6.0",
+    "requests>=2.32",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "click>=8.1",
+    "pypdf>=4.0",
+]
+
+[project.scripts]
+fed-chirp = "fed_chirp.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

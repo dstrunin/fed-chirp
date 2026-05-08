@@ -1,0 +1,56 @@
+# Federal Reserve Board governors as of 2026-05.
+# Each entry: canonical key (last name, lowercase), full name, role, RSS feed.
+# `aliases` are byline strings (case-insensitive substring match) used to
+# resolve a speech back to a canonical key when parsing per-speech HTML.
+
+speakers:
+  - key: powell
+    name: Jerome H. Powell
+    role: Chair
+    rss: https://www.federalreserve.gov/feeds/s_t_powell.xml
+    aliases: ["powell"]
+
+  - key: jefferson
+    name: Philip N. Jefferson
+    role: Vice Chair
+    rss: https://www.federalreserve.gov/feeds/s_t_jefferson.xml
+    aliases: ["jefferson"]
+
+  - key: bowman
+    name: Michelle W. Bowman
+    role: Vice Chair for Supervision
+    rss: https://www.federalreserve.gov/feeds/m_w_Bowman.xml
+    aliases: ["bowman"]
+
+  - key: barr
+    name: Michael S. Barr
+    role: Governor
+    rss: https://www.federalreserve.gov/feeds/s_t_barr.xml
+    aliases: ["barr"]
+
+  - key: cook
+    name: Lisa D. Cook
+    role: Governor
+    rss: https://www.federalreserve.gov/feeds/s_t_cook.xml
+    aliases: ["cook"]
+
+  - key: miran
+    name: Stephen I. Miran
+    role: Governor
+    rss: https://www.federalreserve.gov/feeds/s_t_miran.xml
+    aliases: ["miran"]
+
+  - key: waller
+    name: Christopher J. Waller
+    role: Governor
+    rss: https://www.federalreserve.gov/feeds/s_t_waller.xml
+    aliases: ["waller"]
+
+  # Synthetic entry for FOMC statements and minutes — no individual speaker.
+  # rss is null because FOMC docs are discovered via fetchers/fomc.py against
+  # the press_monetary feed, not the per-speaker speech feeds.
+  - key: fomc
+    name: FOMC Committee
+    role: Committee
+    rss: null
+    aliases: ["fomc"]
