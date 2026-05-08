@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..analysis.deltas import WINDOW_DAYS
+from ..analysis import futures as futures_analysis
 from ..fetchers.federalreserve import Speaker
 from ..fetchers.fomc import (
     DOC_MINUTES,
@@ -36,10 +37,24 @@ DOVE_COLOR = "#2e86c1"
 NEUTRAL_COLOR = "#7f8c8d"
 
 
+@dataclass
+class FuturesContext:
+    """Bundle of futures-derived data the dashboard renders.
+
+    Caller (typically cli.py) builds this from the DB — keeps render() free
+    of DB coupling.
+    """
+    chain: dict[str, float]                     # YYYY-MM -> implied avg rate (%)
+    chain_settle_date: dt.date | None
+    upcoming_meetings: list[dt.date]
+    current_rate: float | None
+
+
 def render(
     speakers: list[Speaker],
     scores: list[StoredScore],
     out_path: Path,
+    futures_ctx: FuturesContext | None = None,
 ) -> None:
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
@@ -60,6 +75,7 @@ def render(
     meetings_html = _fomc_meetings_section(meetings)
     fomc_html = _fomc_pulse(fomc_scores)
     recent_html = _recent_table(speakers, speech_scores[:30])
+    futures_html = _market_implied_section(futures_ctx, meetings)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -68,6 +84,7 @@ def render(
             total=len(scores),
             meetings_html=meetings_html,
             fomc_html=fomc_html,
+            futures_html=futures_html,
             speakers_html=rows_html,
             recent_html=recent_html,
         ),
@@ -389,6 +406,198 @@ def _render_inline_md(text: str) -> str:
     return safe
 
 
+def _market_implied_section(
+    ctx: FuturesContext | None,
+    meetings: list[_Meeting],
+) -> str:
+    """Render the 'Market-implied path' panel: implied rates 6/12 months
+    out, the gap vs latest FOMC tone, and per-meeting probability table."""
+    if ctx is None or not ctx.chain or ctx.current_rate is None:
+        return '<p class="muted">No futures data yet — run `fed-chirp scan` to populate.</p>'
+
+    today = (
+        ctx.chain_settle_date or dt.date.today()
+    )
+
+    r6 = futures_analysis.implied_rate_n_months_out(ctx.chain, 6, today)
+    r12 = futures_analysis.implied_rate_n_months_out(ctx.chain, 12, today)
+    cur = ctx.current_rate
+
+    def _rate_cell(r: float | None) -> str:
+        if r is None:
+            return '<span class="muted">—</span>'
+        delta_bp = (r - cur) * 100.0
+        sign = "+" if delta_bp >= 0 else "−"
+        return (
+            f'<strong>{r:.3f}%</strong>'
+            f'<span class="muted"> ({sign}{abs(delta_bp):.1f} bp vs current)</span>'
+        )
+
+    # Compute market score and the gap vs latest FOMC combined tone
+    ms, bp_change = futures_analysis.market_score(ctx.chain, cur, horizon_months=12)
+    fed_speak_score: float | None = None
+    fed_speak_label = "no recent FOMC docs"
+    for m in meetings:
+        if m.combined is not None:
+            fed_speak_score = m.combined
+            fed_speak_label = f"meeting {m.meeting_date.isoformat()}"
+            break
+    gap = (
+        (fed_speak_score - ms) if fed_speak_score is not None else None
+    )
+
+    if fed_speak_score is None:
+        gap_html = '<p class="muted">No FOMC tone data to compare against.</p>'
+    else:
+        if gap is None:
+            interp = ""
+        elif abs(gap) < 0.3:
+            interp = "essentially aligned"
+        elif gap > 0:
+            interp = "Fed-speak HAWKISH vs market (market pricing more cuts)"
+        else:
+            interp = "Fed-speak DOVISH vs market (market pricing fewer cuts)"
+        gap_html = f"""
+            <div class="gap-panel">
+              <div class="gap-row"><span class="gap-label">Latest FOMC tone (combined):</span>
+                <span class="score {_polarity_class(fed_speak_score)}">{fed_speak_score:+.2f}</span>
+                <span class="muted"> ({fed_speak_label})</span></div>
+              <div class="gap-row"><span class="gap-label">Market-implied score (12m):</span>
+                <span class="score {_polarity_class(ms)}">{ms:+.2f}</span>
+                <span class="muted"> ({bp_change:+.1f} bp 12m)</span></div>
+              <div class="gap-row gap-row--total"><span class="gap-label">Gap (Fed-speak − market):</span>
+                <span class="score {_polarity_class(gap)}">{gap:+.2f}</span>
+                <span class="muted"> — {html.escape(interp)}</span></div>
+            </div>"""
+
+    # Per-meeting table
+    meeting_rates = futures_analysis.implied_rates_at_meetings(
+        ctx.chain, ctx.upcoming_meetings, cur
+    )
+    if meeting_rates:
+        # Pick a small set of buckets to display (most relevant range).
+        # Use only buckets that actually have probability mass on any meeting.
+        bucket_set: set[float] = set()
+        rows_data = []
+        for mr in meeting_rates[:6]:
+            p = futures_analysis.move_probabilities(mr)
+            rows_data.append((mr, p))
+            for b, v in p.buckets.items():
+                if v > 0.005:
+                    bucket_set.add(b)
+        buckets = sorted(bucket_set)
+        header_cells = "".join(
+            f"<th>{_bucket_label(b)}</th>" for b in buckets
+        )
+        body_rows: list[str] = []
+        for mr, p in rows_data:
+            cells = []
+            for b in buckets:
+                v = p.buckets.get(b, 0.0)
+                cls = _bucket_cell_class(v)
+                cells.append(f'<td class="bucket-cell {cls}">{v*100:.0f}%</td>')
+            body_rows.append(
+                f"""<tr>
+                  <td>{mr.meeting_date.isoformat()}</td>
+                  <td>{mr.rate_after:.3f}%</td>
+                  <td class="score {_polarity_class(-mr.delta_bp/50)}">{mr.delta_bp:+.1f} bp</td>
+                  {''.join(cells)}
+                </tr>"""
+            )
+        per_meeting_table = f"""
+            <table class="fomc">
+              <thead><tr>
+                <th>Meeting</th>
+                <th>Implied rate after</th>
+                <th>Δ at meeting</th>
+                {header_cells}
+              </tr></thead>
+              <tbody>{''.join(body_rows)}</tbody>
+            </table>"""
+    else:
+        per_meeting_table = (
+            '<p class="muted">No upcoming meetings within the chain window.</p>'
+        )
+
+    # Implied path sparkline (chain in chronological order)
+    chain_series = [ctx.chain[k] for k in sorted(ctx.chain.keys())]
+    spark = (
+        _sparkline_rates(chain_series) if chain_series else ""
+    )
+
+    asof_str = (
+        f"as of {ctx.chain_settle_date.isoformat()}"
+        if ctx.chain_settle_date else "as of today"
+    )
+
+    return f"""
+        <h3>Market-implied path <span class="muted">({asof_str})</span></h3>
+        <table class="rates-table">
+          <tbody>
+            <tr><td>Effective fed funds rate (current)</td><td><strong>{cur:.3f}%</strong></td></tr>
+            <tr><td>Market-implied, 6 months out</td><td>{_rate_cell(r6)}</td></tr>
+            <tr><td>Market-implied, 12 months out</td><td>{_rate_cell(r12)}</td></tr>
+          </tbody>
+        </table>
+        <p class="meta">Implied rate path (oldest → newest): {spark}</p>
+        {gap_html}
+        <h4>Next FOMC meetings (implied move probabilities)</h4>
+        {per_meeting_table}
+        <p class="meta">
+          Probabilities are computed from settlement-implied per-meeting rate
+          changes via the standard CME-FedWatch step-path methodology (linear
+          decomposition into 25 bp buckets). Hold = 0 bp move.
+        </p>"""
+
+
+def _bucket_label(bp: float) -> str:
+    if bp == 0:
+        return "Hold"
+    sign = "+" if bp > 0 else "−"
+    word = "Hike" if bp > 0 else "Cut"
+    return f"{word} {abs(int(bp))} bp"
+
+
+def _bucket_cell_class(v: float) -> str:
+    if v >= 0.50:
+        return "bucket-strong"
+    if v >= 0.20:
+        return "bucket-mod"
+    if v >= 0.05:
+        return "bucket-weak"
+    return "bucket-zero"
+
+
+def _sparkline_rates(values: list[float]) -> str:
+    """Like _sparkline but for rate-percent values; auto-scales to the
+    series range with a small pad."""
+    if not values:
+        return ""
+    if len(values) == 1:
+        values = [values[0], values[0]]
+    lo, hi = min(values), max(values)
+    pad = max(0.05, (hi - lo) * 0.1)
+    lo -= pad
+    hi += pad
+    w = SPARK_W - 2 * SPARK_PADDING
+    h = SPARK_H - 2 * SPARK_PADDING
+
+    def x(i: int) -> float:
+        if len(values) == 1:
+            return SPARK_PADDING + w / 2
+        return SPARK_PADDING + (i / (len(values) - 1)) * w
+
+    def y(v: float) -> float:
+        return SPARK_PADDING + (1 - (v - lo) / (hi - lo)) * h
+
+    pts = " ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(values))
+    return (
+        f'<svg viewBox="0 0 {SPARK_W} {SPARK_H}" width="{SPARK_W}" height="{SPARK_H}">'
+        f'<polyline fill="none" stroke="#1f6feb" stroke-width="1.5" points="{pts}"/>'
+        f"</svg>"
+    )
+
+
 def _recent_table(speakers: list[Speaker], scores: list[StoredScore]) -> str:
     by_key = {sp.key: sp for sp in speakers}
     if not scores:
@@ -490,7 +699,20 @@ _PAGE = """<!doctype html>
   details summary {{ cursor: pointer; color: #1f6feb; padding: 0.2rem 0; user-select: none; }}
   ul.diff-notes {{ margin: 0.4rem 0 0.2rem; padding-left: 1.2rem; }}
   ul.diff-notes li {{ margin: 0.3rem 0; line-height: 1.45; }}
-  h3 {{ font-size: 1rem; color: #444; margin: 1rem 0 0.4rem; }}
+  h3, h4 {{ font-size: 1rem; color: #444; margin: 1rem 0 0.4rem; }}
+  table.rates-table {{ max-width: 460px; margin: 0.5rem 0 1rem; }}
+  table.rates-table td {{ padding: 0.3rem 0.6rem; }}
+  .gap-panel {{ background: #fafbfc; border: 1px solid #eee; border-radius: 4px;
+              padding: 0.7rem 1rem; margin: 1rem 0 1.2rem; max-width: 640px; }}
+  .gap-row {{ padding: 0.18rem 0; }}
+  .gap-row--total {{ border-top: 1px solid #eee; margin-top: 0.3rem;
+                    padding-top: 0.4rem; font-weight: 600; }}
+  .gap-label {{ display: inline-block; min-width: 220px; color: #555; }}
+  td.bucket-cell {{ text-align: center; font-variant-numeric: tabular-nums; }}
+  td.bucket-strong {{ background: #fff3cd; font-weight: 600; }}
+  td.bucket-mod {{ background: #fff8e0; }}
+  td.bucket-weak {{ color: #888; }}
+  td.bucket-zero {{ color: #ccc; }}
   .legend {{ font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }}
   .legend span {{ font-weight: 600; }}
 </style>
@@ -507,6 +729,9 @@ _PAGE = """<!doctype html>
 <h2>FOMC pulse</h2>
 {meetings_html}
 {fomc_html}
+
+<h2>Market-implied path</h2>
+{futures_html}
 
 <h2>Board governors</h2>
 <table>

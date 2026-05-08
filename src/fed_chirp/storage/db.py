@@ -42,6 +42,24 @@ CREATE TABLE IF NOT EXISTS alerts (
 
 CREATE INDEX IF NOT EXISTS idx_speeches_speaker_date ON speeches(speaker_key, speech_date);
 CREATE INDEX IF NOT EXISTS idx_alerts_speech ON alerts(speech_url);
+
+CREATE TABLE IF NOT EXISTS futures_settlements (
+    contract_symbol TEXT NOT NULL,        -- e.g. ZQM26.CBT
+    contract_month  TEXT NOT NULL,        -- ISO month, e.g. 2026-06
+    settle_date     TEXT NOT NULL,        -- ISO date
+    settle_price    REAL NOT NULL,
+    implied_rate    REAL NOT NULL,        -- 100 - settle_price
+    fetched_at      TEXT NOT NULL,
+    PRIMARY KEY (contract_symbol, settle_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_futures_settle_date ON futures_settlements(settle_date);
+
+CREATE TABLE IF NOT EXISTS fomc_meetings (
+    meeting_date    TEXT PRIMARY KEY,
+    has_press_conf  INTEGER NOT NULL DEFAULT 1,
+    fetched_at      TEXT NOT NULL
+);
 """
 
 
@@ -320,6 +338,104 @@ class Database:
                 "SELECT 1 FROM alerts WHERE speech_url = ?", (speech_url,)
             ).fetchone()
             return row is not None
+
+    # ---- futures settlements ----
+
+    def insert_settlement(
+        self,
+        contract_symbol: str,
+        contract_month: str,
+        settle_date: dt.date,
+        settle_price: float,
+    ) -> None:
+        implied_rate = 100.0 - settle_price
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO futures_settlements
+                   (contract_symbol, contract_month, settle_date,
+                    settle_price, implied_rate, fetched_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    contract_symbol,
+                    contract_month,
+                    settle_date.isoformat(),
+                    settle_price,
+                    implied_rate,
+                    dt.datetime.now(dt.timezone.utc).isoformat(),
+                ),
+            )
+
+    def latest_chain(self) -> list[tuple[str, str, dt.date, float, float]]:
+        """Return the chain on the most recent settle_date.
+        Each tuple: (contract_symbol, contract_month, settle_date, price, implied_rate).
+        Sorted by contract_month ascending."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT MAX(settle_date) AS d FROM futures_settlements"
+            ).fetchone()
+            if row is None or row["d"] is None:
+                return []
+            asof = row["d"]
+            rows = conn.execute(
+                """SELECT contract_symbol, contract_month, settle_date,
+                          settle_price, implied_rate
+                   FROM futures_settlements
+                   WHERE settle_date = ?
+                   ORDER BY contract_month""",
+                (asof,),
+            ).fetchall()
+        return [
+            (
+                r["contract_symbol"],
+                r["contract_month"],
+                dt.date.fromisoformat(r["settle_date"]),
+                r["settle_price"],
+                r["implied_rate"],
+            )
+            for r in rows
+        ]
+
+    # ---- FOMC meetings ----
+
+    def upsert_meeting(self, meeting_date: dt.date, has_press_conf: bool) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO fomc_meetings
+                   (meeting_date, has_press_conf, fetched_at)
+                   VALUES (?, ?, ?)""",
+                (
+                    meeting_date.isoformat(),
+                    1 if has_press_conf else 0,
+                    dt.datetime.now(dt.timezone.utc).isoformat(),
+                ),
+            )
+
+    def upcoming_meetings(self, asof: dt.date, limit: int = 4) -> list[dt.date]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT meeting_date FROM fomc_meetings
+                   WHERE meeting_date >= ?
+                   ORDER BY meeting_date
+                   LIMIT ?""",
+                (asof.isoformat(), limit),
+            ).fetchall()
+        return [dt.date.fromisoformat(r["meeting_date"]) for r in rows]
+
+    def all_meetings(self) -> list[dt.date]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT meeting_date FROM fomc_meetings ORDER BY meeting_date"
+            ).fetchall()
+        return [dt.date.fromisoformat(r["meeting_date"]) for r in rows]
+
+    def latest_calendar_fetch(self) -> dt.datetime | None:
+        with self.connect() as conn:
+            r = conn.execute(
+                "SELECT MAX(fetched_at) AS f FROM fomc_meetings"
+            ).fetchone()
+        if r is None or r["f"] is None:
+            return None
+        return dt.datetime.fromisoformat(r["f"])
 
 
 def _row_to_score(r: sqlite3.Row) -> StoredScore:

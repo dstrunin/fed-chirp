@@ -11,7 +11,10 @@ from dotenv import load_dotenv
 from .analysis.deltas import baseline as build_baseline
 from .analysis.deltas import should_alert
 from .analysis.fomc_deltas import should_alert_doc
+from .analysis import futures as futures_analysis
 from .fetchers import fomc as fomc_fetch
+from .fetchers import futures as futures_fetch
+from .fetchers import fomc_calendar
 from .fetchers.federalreserve import (
     Speaker,
     SpeechRef,
@@ -21,6 +24,7 @@ from .fetchers.federalreserve import (
 )
 from .output import dashboard as dash
 from .output import diff as diff_render
+from .output.dashboard import FuturesContext
 from .output.email_report import AlertItem, FomcAlertItem, send_alerts
 from .scoring.claude_scorer import score_speech
 from .scoring.diff_notes import annotate_statement_diff
@@ -57,6 +61,8 @@ def scan(dry_run: bool, config: Path, db_path: Path) -> None:
     fomc_refs = fomc_fetch.discover()
     new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
     log.info("fomc docs: %d in feeds, %d new", len(fomc_refs), len(new_fomc))
+
+    _refresh_futures_and_calendar(db)
 
     speech_alerts = _process_speeches(new_speech, speakers, db)
     fomc_alerts = _process_fomc(new_fomc, db)
@@ -97,6 +103,7 @@ def backfill(since_str: str, config: Path, db_path: Path) -> None:
     log.info("backfill fomc docs since %s: %d in feeds, %d to process",
              since_date, len(fomc_refs), len(new_fomc))
 
+    _refresh_futures_and_calendar(db)
     _process_speeches(new_speech, speakers, db, suppress_alerts=True)
     _process_fomc(new_fomc, db, suppress_alerts=True)
     _regenerate_dashboard(speakers, db)
@@ -244,6 +251,55 @@ def diff_cmd(url: str, db_path: Path) -> None:
         click.echo("Notes (auto-generated):")
         for n in cur_score.diff_notes:
             click.echo(f"  • {n}")
+
+
+@cli.command("futures")
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+@click.option("--refresh/--no-refresh", default=True,
+              help="Pull fresh settlements before printing.")
+def futures_cmd(db_path: Path, refresh: bool) -> None:
+    """Print the latest ZQ chain, current rate, market score, and per-meeting
+    implied moves with probabilities. Handy for spot-checking against CME's
+    public FedWatch page."""
+    db = Database(db_path)
+    if refresh:
+        _refresh_futures_and_calendar(db)
+
+    chain_rows = db.latest_chain()
+    if not chain_rows:
+        raise click.ClickException("No futures data — run with --refresh.")
+    chain = {row[1]: row[4] for row in chain_rows}
+    settle_date = chain_rows[0][2]
+    all_meetings = db.all_meetings()
+    upcoming = db.upcoming_meetings(asof=dt.date.today(), limit=8)
+    cur = futures_analysis.current_rate_from_chain(chain, all_meetings)
+    if cur is None:
+        raise click.ClickException("Could not derive current rate from chain.")
+
+    click.echo(f"Settlement date: {settle_date.isoformat()}")
+    click.echo(f"Current effective rate: {cur:.3f}%")
+    click.echo()
+    click.echo("Chain (implied avg rate by month):")
+    for k in sorted(chain.keys()):
+        click.echo(f"  {k}: {chain[k]:.3f}%")
+
+    ms, bp = futures_analysis.market_score(chain, cur)
+    click.echo()
+    click.echo(f"Market score (12m, normalized): {ms:+.2f}  (bp_change_12m: {bp:+.1f})")
+
+    click.echo()
+    click.echo("Upcoming meetings:")
+    rates = futures_analysis.implied_rates_at_meetings(chain, upcoming, cur)
+    for mr in rates[:6]:
+        p = futures_analysis.move_probabilities(mr)
+        nonzero = {k: v for k, v in p.buckets.items() if v > 0.005}
+        fmt = ", ".join(
+            f"{int(k):+d}bp:{v*100:.0f}%" for k, v in sorted(nonzero.items())
+        )
+        click.echo(
+            f"  {mr.meeting_date}  {mr.rate_after:.3f}%  "
+            f"(Δ {mr.delta_bp:+.1f} bp)  {fmt}"
+        )
 
 
 @cli.command("annotate-diffs")
@@ -476,8 +532,56 @@ def _process_fomc(
 
 def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
     scores = db.all_scores()
-    dash.render(speakers, scores, DEFAULT_DASHBOARD)
+    ctx = _build_futures_context(db)
+    dash.render(speakers, scores, DEFAULT_DASHBOARD, futures_ctx=ctx)
     log.info("dashboard: regenerated at %s (%d documents)", DEFAULT_DASHBOARD, len(scores))
+
+
+def _build_futures_context(db: Database) -> FuturesContext | None:
+    chain_rows = db.latest_chain()
+    if not chain_rows:
+        return None
+    chain = {row[1]: row[4] for row in chain_rows}  # contract_month -> implied_rate
+    settle_date = chain_rows[0][2]
+    upcoming = db.upcoming_meetings(asof=dt.date.today(), limit=8)
+    all_meetings = db.all_meetings()
+    cur = futures_analysis.current_rate_from_chain(chain, all_meetings)
+    return FuturesContext(
+        chain=chain,
+        chain_settle_date=settle_date,
+        upcoming_meetings=upcoming,
+        current_rate=cur,
+    )
+
+
+def _refresh_futures_and_calendar(db: Database) -> None:
+    """Pull latest ZQ chain + refresh FOMC calendar (cached weekly)."""
+    # Calendar: refresh if last fetch is older than 7 days, or never fetched.
+    last = db.latest_calendar_fetch()
+    stale = last is None or (
+        dt.datetime.now(dt.timezone.utc) - last
+    ) > dt.timedelta(days=7)
+    if stale:
+        try:
+            meetings = fomc_calendar.fetch_meetings()
+            for meeting_date, has_pc in meetings:
+                db.upsert_meeting(meeting_date, has_pc)
+            log.info("calendar: refreshed (%d meetings)", len(meetings))
+        except Exception as exc:
+            log.exception("calendar refresh failed: %s", exc)
+
+    # Futures: pull current chain
+    try:
+        symbols = futures_fetch.chain_symbols(length=futures_fetch.CHAIN_LENGTH)
+        settlements = futures_fetch.fetch_chain(symbols)
+        for s in settlements:
+            db.insert_settlement(
+                s.contract_symbol, s.contract_month,
+                s.settle_date, s.settle_price,
+            )
+        log.info("futures: fetched %d contracts", len(settlements))
+    except Exception as exc:
+        log.exception("futures fetch failed: %s", exc)
 
 
 def _resolve_speaker_from_url(url: str, speakers: list[Speaker]) -> Speaker | None:
