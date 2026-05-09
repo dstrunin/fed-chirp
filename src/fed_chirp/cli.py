@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from .analysis.deltas import baseline as build_baseline
 from .analysis.deltas import should_alert
+from .analysis import divergence as divergence_analysis
 from .analysis.fomc_deltas import should_alert_doc
 from .analysis import futures as futures_analysis
 from .fetchers import fomc as fomc_fetch
@@ -327,6 +328,52 @@ def futures_cmd(db_path: Path, refresh: bool) -> None:
             f"  {mr.meeting_date}  {mr.rate_after:.3f}%  "
             f"(Δ {mr.delta_bp:+.1f} bp)  {fmt}"
         )
+
+
+@cli.command("divergence")
+@click.option("--asof", "asof_str", default=None,
+              help="ISO date to compute divergence as-of (default: today).")
+@click.option("--config", type=click.Path(path_type=Path), default=DEFAULT_CONFIG)
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+def divergence_cmd(asof_str: str | None, config: Path, db_path: Path) -> None:
+    """Print committee divergence: spread, stdev, hawk/dove poles, camps.
+
+    Useful for ad-hoc inspection or backtesting at past dates.
+    """
+    asof = dt.date.fromisoformat(asof_str) if asof_str else dt.date.today()
+    speakers = load_speakers(config)
+    db = Database(db_path)
+    scores = db.all_scores()
+    roster = [sp.key for sp in speakers if sp.key != "fomc"]
+
+    snap = divergence_analysis.divergence_snapshot(scores, roster, asof)
+    snap_30 = divergence_analysis.divergence_snapshot(
+        scores, roster, asof - dt.timedelta(days=30)
+    )
+
+    click.echo(f"As of: {asof.isoformat()}  (window: trailing 90 days)")
+    click.echo(f"Speakers covered: {snap.n_covered} / {snap.n_total}")
+    click.echo(f"Spread (max − min): {snap.spread:+.3f}")
+    click.echo(f"Stdev of speaker means: {snap.stdev:.3f}")
+    if snap_30.n_covered > 0:
+        delta = snap.spread - snap_30.spread
+        click.echo(f"Spread vs 30 days ago: {delta:+.3f}")
+    if snap.hawk_key:
+        click.echo(f"Hawk pole: {snap.hawk_key}  Dove pole: {snap.dove_key}")
+    click.echo()
+
+    by_key = {sp.key: sp.name for sp in speakers}
+    hawks, neutrals, doves = divergence_analysis.camps(snap)
+    for label, camp in (("Hawks (>+0.3)", hawks),
+                         ("Neutrals", neutrals),
+                         ("Doves (<-0.3)", doves)):
+        click.echo(f"{label}:")
+        if not camp:
+            click.echo("  (none)")
+        for s in camp:
+            name = by_key.get(s.speaker_key, s.speaker_key)
+            click.echo(f"  {s.mean:+.2f}  {name}  (n={s.n})")
+        click.echo()
 
 
 @cli.command("annotate-diffs")

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..analysis.deltas import WINDOW_DAYS
+from ..analysis import divergence as divergence_analysis
 from ..analysis import futures as futures_analysis
 from ..fetchers.federalreserve import Speaker
 from ..fetchers.fomc import (
@@ -76,6 +77,7 @@ def render(
     fomc_html = _fomc_pulse(fomc_scores)
     recent_html = _recent_table(speakers, speech_scores[:30])
     futures_html = _market_implied_section(futures_ctx, meetings)
+    divergence_html = _committee_divergence_section(speakers, scores)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -85,6 +87,7 @@ def render(
             meetings_html=meetings_html,
             fomc_html=fomc_html,
             futures_html=futures_html,
+            divergence_html=divergence_html,
             speakers_html=rows_html,
             recent_html=recent_html,
         ),
@@ -600,6 +603,153 @@ def _sparkline_rates(values: list[float]) -> str:
     )
 
 
+def _committee_divergence_section(
+    speakers: list[Speaker],
+    scores: list[StoredScore],
+    *,
+    asof: dt.date | None = None,
+) -> str:
+    """Render the Committee divergence panel: headline metrics, sparkline of
+    spread over the trailing 90 days, and a hawk/neutral/dove camps table."""
+    asof = asof or dt.date.today()
+    roster = [sp.key for sp in speakers if sp.key != FOMC_SPEAKER_KEY]
+    if not roster:
+        return '<p class="muted">No speakers in roster.</p>'
+
+    snap_now = divergence_analysis.divergence_snapshot(scores, roster, asof)
+    if snap_now.n_covered == 0:
+        return '<p class="muted">No speeches in trailing window.</p>'
+
+    # Trend: compare current spread to the snapshot 30 days ago.
+    snap_30d_ago = divergence_analysis.divergence_snapshot(
+        scores, roster, asof - dt.timedelta(days=30)
+    )
+    trend_html: str
+    if snap_30d_ago.n_covered == 0:
+        trend_html = ""
+    else:
+        delta = snap_now.spread - snap_30d_ago.spread
+        if abs(delta) < 0.05:
+            arrow, cls, word = "→", "neutral", "≈ flat"
+        elif delta > 0:
+            arrow, cls = "↑", "hawk"
+            word = f"+{delta:.2f} vs 30d ago"
+        else:
+            arrow, cls = "↓", "dove"
+            word = f"{delta:+.2f} vs 30d ago"
+        trend_html = f' <span class="score {cls}">{arrow} {word}</span>'
+
+    # Sparkline of spread over the trailing 90 days
+    ts = divergence_analysis.time_series(
+        scores, roster, end_date=asof,
+        days_back=divergence_analysis.WINDOW_DAYS,
+        window_days=divergence_analysis.WINDOW_DAYS,
+    )
+    spark_values = [v for _, v in ts]
+    spark_html = _sparkline_spread(spark_values) if spark_values else ""
+
+    # Camps
+    by_key = {sp.key: sp for sp in speakers}
+    hawks, neutrals, doves = divergence_analysis.camps(snap_now)
+
+    def _name_for(s: divergence_analysis.SpeakerSnapshot) -> str:
+        sp = by_key.get(s.speaker_key)
+        return sp.name if sp else s.speaker_key
+
+    def _camp_col(camp: list, cls: str, header: str) -> str:
+        if not camp:
+            return f'<td class="camp-col"><div class="camp-header {cls}">{header}</div>' \
+                   f'<p class="muted">(none)</p></td>'
+        rows = []
+        for s in camp:
+            rows.append(
+                f'<div class="camp-row">'
+                f'<span class="camp-name">{html.escape(_name_for(s))}</span>'
+                f'<span class="score {cls}">{s.mean:+.2f}</span>'
+                f'<span class="muted"> n={s.n}</span>'
+                f'</div>'
+            )
+        return f'<td class="camp-col"><div class="camp-header {cls}">{header}</div>' \
+               f'{"".join(rows)}</td>'
+
+    camps_html = (
+        f'<table class="camps"><tbody><tr>'
+        f'{_camp_col(hawks, "hawk", f"Hawks (>+{divergence_analysis.HAWK_THRESHOLD:.1f})")}'
+        f'{_camp_col(neutrals, "neutral", "Neutrals")}'
+        f'{_camp_col(doves, "dove", f"Doves (<{divergence_analysis.DOVE_THRESHOLD:+.1f})")}'
+        f'</tr></tbody></table>'
+    )
+
+    hawk_name = html.escape(by_key[snap_now.hawk_key].name) if snap_now.hawk_key in by_key else snap_now.hawk_key
+    dove_name = html.escape(by_key[snap_now.dove_key].name) if snap_now.dove_key in by_key else snap_now.dove_key
+
+    return f"""
+        <table class="rates-table">
+          <tbody>
+            <tr>
+              <td>Trailing 90-day spread (max − min)</td>
+              <td><strong>{snap_now.spread:.2f}</strong>{trend_html}</td>
+            </tr>
+            <tr>
+              <td>Trailing 90-day stdev of speaker means</td>
+              <td>{snap_now.stdev:.2f}</td>
+            </tr>
+            <tr>
+              <td>Speakers covered</td>
+              <td>{snap_now.n_covered} / {snap_now.n_total}
+                <span class="muted">
+                  ({snap_now.n_total - snap_now.n_covered} had no speeches in window)
+                </span></td>
+            </tr>
+            <tr>
+              <td>Hawk pole / dove pole</td>
+              <td><span class="hawk">{hawk_name}</span>
+                <span class="muted">vs</span>
+                <span class="dove">{dove_name}</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="meta">Spread over trailing 90 days (oldest → newest): {spark_html}</p>
+        <h4>Hawk / neutral / dove camps</h4>
+        {camps_html}
+        <p class="meta">
+          Each speaker's trailing 90-day mean places them in a camp; numbers
+          after each name are the mean and the number of speeches in the
+          window. Widening spread historically precedes dissents at the
+          next FOMC meeting.
+        </p>"""
+
+
+def _sparkline_spread(values: list[float]) -> str:
+    """Auto-scaled sparkline for divergence-spread values (always ≥ 0)."""
+    if not values:
+        return ""
+    if len(values) == 1:
+        values = [values[0], values[0]]
+    lo = min(0.0, min(values))
+    hi = max(values) if max(values) > 0 else 1.0
+    pad = max(0.05, (hi - lo) * 0.1)
+    lo -= pad
+    hi += pad
+    w = SPARK_W - 2 * SPARK_PADDING
+    h = SPARK_H - 2 * SPARK_PADDING
+
+    def x(i: int) -> float:
+        if len(values) == 1:
+            return SPARK_PADDING + w / 2
+        return SPARK_PADDING + (i / (len(values) - 1)) * w
+
+    def y(v: float) -> float:
+        return SPARK_PADDING + (1 - (v - lo) / (hi - lo)) * h
+
+    pts = " ".join(f"{x(i):.1f},{y(v):.1f}" for i, v in enumerate(values))
+    return (
+        f'<svg viewBox="0 0 {SPARK_W} {SPARK_H}" width="{SPARK_W}" height="{SPARK_H}">'
+        f'<polyline fill="none" stroke="#7f3f7f" stroke-width="1.5" points="{pts}"/>'
+        f"</svg>"
+    )
+
+
 def _recent_table(speakers: list[Speaker], scores: list[StoredScore]) -> str:
     by_key = {sp.key: sp for sp in speakers}
     if not scores:
@@ -715,6 +865,14 @@ _PAGE = """<!doctype html>
   td.bucket-mod {{ background: #fff8e0; }}
   td.bucket-weak {{ color: #888; }}
   td.bucket-zero {{ color: #ccc; }}
+  table.camps {{ width: 100%; margin: 0.4rem 0 1rem; }}
+  table.camps td.camp-col {{ vertical-align: top; padding: 0.4rem 0.8rem;
+                            border: none; width: 33.3%; }}
+  .camp-header {{ font-weight: 600; padding-bottom: 0.4rem;
+                 border-bottom: 1px solid #eee; margin-bottom: 0.4rem; font-size: 0.9rem; }}
+  .camp-row {{ padding: 0.18rem 0; font-size: 0.92rem; display: flex;
+              justify-content: space-between; gap: 0.4rem; }}
+  .camp-name {{ flex: 1; color: #222; }}
   .legend {{ font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }}
   .legend span {{ font-weight: 600; }}
 </style>
@@ -734,6 +892,9 @@ _PAGE = """<!doctype html>
 
 <h2>Market-implied path</h2>
 {futures_html}
+
+<h2>Committee divergence</h2>
+{divergence_html}
 
 <h2>Governors and presidents</h2>
 <table>
