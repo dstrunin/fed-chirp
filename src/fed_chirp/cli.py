@@ -783,6 +783,106 @@ def _fomc_ref_from_url(url: str) -> fomc_fetch.FomcRef:
     )
 
 
+@cli.command("rescore")
+@click.option("--since", "since_str", default=None,
+              help="ISO date; only rescore speeches on/after this date.")
+@click.option("--only", "only_keys", multiple=True,
+              help="Restrict to one or more speaker_keys (repeatable).")
+@click.option("--dry-run", is_flag=True, help="Print actions without modifying the DB.")
+@click.option("--config", type=click.Path(path_type=Path), default=DEFAULT_CONFIG)
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+def rescore(
+    since_str: str | None, only_keys: tuple[str, ...], dry_run: bool,
+    config: Path, db_path: Path,
+) -> None:
+    """Re-evaluate existing speech bodies against the current rubric.
+
+    Calls the Claude API for each row. Use after a rubric change to apply
+    new scoring to historical speeches. Only doc_type='speech' rows are
+    processed (FOMC docs bypass).
+    """
+    speakers = load_speakers(config)
+    by_key = {sp.key: sp for sp in speakers}
+    db = Database(db_path)
+
+    where = ["s.doc_type = 'speech'"]
+    params: list = []
+    if since_str:
+        where.append("s.speech_date >= ?")
+        params.append(since_str)
+    if only_keys:
+        unknown = set(only_keys) - {sp.key for sp in speakers}
+        if unknown:
+            raise click.ClickException(f"Unknown speaker_key(s): {sorted(unknown)}")
+        placeholders = ",".join("?" for _ in only_keys)
+        where.append(f"s.speaker_key IN ({placeholders})")
+        params.extend(only_keys)
+
+    sql = f"""
+        SELECT s.url, s.speaker_key, s.speech_date, s.title, s.body
+        FROM speeches s
+        JOIN speech_scores sc ON sc.speech_url = s.url
+        WHERE {' AND '.join(where)}
+        ORDER BY s.speech_date
+    """
+    with db.connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    log.info("rescore: %d speech row(s) match", len(rows))
+    rescored = 0
+    excluded = 0
+    skipped = 0
+    for r in rows:
+        speaker = by_key.get(r["speaker_key"])
+        if speaker is None:
+            log.warning("rescore: unknown speaker_key %s; skipping", r["speaker_key"])
+            skipped += 1
+            continue
+        speech_date = dt.date.fromisoformat(r["speech_date"])
+        if dry_run:
+            click.echo(f"[dry-run] would rescore: {r['speaker_key']} {speech_date} {r['url']}")
+            rescored += 1
+            continue
+        try:
+            result = score_speech(
+                speaker_name=speaker.name,
+                speaker_role=speaker.role,
+                speech_date=speech_date,
+                title=r["title"],
+                body=r["body"],
+            )
+        except Exception as exc:
+            log.exception("rescore failed: %s — %s", r["url"], exc)
+            skipped += 1
+            continue
+        if result.score is None:
+            db.delete_score(r["url"])
+            click.echo(
+                f"excluded: {r['speaker_key']} {speech_date} — {result.rationale}"
+            )
+            excluded += 1
+        else:
+            db.insert_score(
+                speech_url=r["url"],
+                score=result.score,
+                label=result.label,
+                rationale=result.rationale,
+                key_quotes=result.key_quotes,
+                model=result.model,
+                scored_at=result.scored_at,
+            )
+            click.echo(
+                f"scored: {r['speaker_key']} {speech_date} -> "
+                f"{result.score:+.2f} ({result.label})"
+            )
+            rescored += 1
+
+    click.echo(
+        f"{'[dry-run] ' if dry_run else ''}rescore summary: "
+        f"{rescored} scored, {excluded} newly excluded, {skipped} skipped."
+    )
+
+
 @cli.command("clean")
 @click.option("--dry-run", is_flag=True, help="Print actions without modifying the DB.")
 @click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
