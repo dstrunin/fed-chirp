@@ -19,6 +19,16 @@
   .hawk { color: #c0392b; }
   .dove { color: #2e86c1; }
   .neutral { color: #7f8c8d; }
+  .up { color: #27ae60; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .down { color: #c0392b; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .flat { color: #888; font-variant-numeric: tabular-nums; }
+  table.reactions th, table.reactions td { text-align: right; }
+  table.reactions th.meeting, table.reactions td.meeting { text-align: left; }
+  table.reactions th.group { text-align: center; border-bottom: 1px solid #ddd;
+                              font-size: 0.85em; color: #666; padding-bottom: 0.3rem; }
+  table.reactions td .vol { color: #999; font-size: 0.82em; margin-left: 0.3rem;
+                              font-weight: normal; }
+  table.reactions td.divider { border-left: 1px solid #eee; }
   .muted { color: #999; font-weight: normal; font-size: 0.85em; }
   table.recent td.rationale { max-width: 380px; color: #555; }
   table.recent td a, table.fomc td a { color: #1f6feb; }
@@ -56,7 +66,7 @@
 </head>
 <body>
 <h1>Fed Chirp</h1>
-<div class="meta">Last regenerated 2026-05-09 09:20 &middot; 473 speeches scored</div>
+<div class="meta">Last regenerated 2026-05-09 13:37 &middot; 473 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -216,6 +226,32 @@
                   <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251119a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr></tbody>
         </table>
+
+<h2>FOMC market reaction</h2>
+<p class="muted">
+  S&amp;P (ES=F) and Nasdaq (NQ=F) intraday moves around each FOMC meeting.
+  <strong>Statement</strong> = 2:00pm → 2:30pm ET (statement → presser);
+  <strong>Same-day close</strong> = 2:30pm → 4:00pm ET;
+  <strong>Next-day close</strong> = 2:30pm ET → next trading day 4:00pm ET.
+  σ = annualized realized volatility (%).
+</p>
+
+    <table class="reactions">
+      <thead>
+        <tr>
+          <th class="meeting" rowspan="2">Meeting</th>
+          <th class="group" colspan="2">Statement window<br><span class="muted">14:00→14:30 ET</span></th>
+          <th class="group" colspan="2">Same-day close<br><span class="muted">14:30→16:00 ET</span></th>
+          <th class="group" colspan="2">Next-day close<br><span class="muted">→ next 16:00 ET</span></th>
+        </tr>
+        <tr><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th></tr>
+      </thead>
+      <tbody><tr><td class="meeting">2026-04-29</td><td><span class="down">-0.19%</span><span class="vol">σ19.6</span></td><td><span class="down">-0.15%</span><span class="vol">σ26.3</span></td><td class="divider"><span class="up">+0.34%</span><span class="vol">σ22.2</span></td><td><span class="up">+0.47%</span><span class="vol">σ28.2</span></td><td class="divider"><span class="up">+1.29%</span><span class="vol">σ20.9</span></td><td><span class="up">+1.35%</span><span class="vol">σ32.5</span></td></tr>
+<tr><td class="meeting">2026-03-18</td><td><span class="down">-0.10%</span><span class="vol">σ26.4</span></td><td><span class="down">-0.10%</span><span class="vol">σ27.8</span></td><td class="divider"><span class="down">-0.69%</span><span class="vol">σ23.5</span></td><td><span class="down">-0.82%</span><span class="vol">σ27.6</span></td><td class="divider"><span class="down">-0.97%</span><span class="vol">σ24.0</span></td><td><span class="down">-1.13%</span><span class="vol">σ28.4</span></td></tr>
+<tr><td class="meeting">2026-01-28</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="down">-0.16%</span><span class="vol">σ27.2</span></td><td><span class="down">-0.64%</span><span class="vol">σ40.0</span></td></tr>
+<tr><td class="meeting">2025-12-10</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="up">+0.16%</span><span class="vol">σ16.6</span></td><td><span class="down">-0.42%</span><span class="vol">σ26.8</span></td></tr></tbody>
+    </table>
+    
 
 <h2>Market-implied path</h2>
 

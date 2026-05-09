@@ -27,7 +27,7 @@ from ..fetchers.fomc import (
     FOMC_SPEAKER_KEY,
     doc_type_label,
 )
-from ..storage.db import StoredScore
+from ..storage.db import MarketReaction, StoredScore
 
 SPARK_W = 220
 SPARK_H = 36
@@ -36,6 +36,8 @@ SPARK_PADDING = 4
 HAWK_COLOR = "#c0392b"
 DOVE_COLOR = "#2e86c1"
 NEUTRAL_COLOR = "#7f8c8d"
+UP_COLOR = "#27ae60"
+DOWN_COLOR = "#c0392b"
 
 
 @dataclass
@@ -56,6 +58,7 @@ def render(
     scores: list[StoredScore],
     out_path: Path,
     futures_ctx: FuturesContext | None = None,
+    reactions: list[MarketReaction] | None = None,
 ) -> None:
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
@@ -75,6 +78,7 @@ def render(
     meetings = _group_by_meeting(fomc_scores)
     meetings_html = _fomc_meetings_section(meetings)
     fomc_html = _fomc_pulse(fomc_scores)
+    reactions_html = _market_reaction_section(reactions or [])
     recent_html = _recent_table(speakers, speech_scores[:30])
     futures_html = _market_implied_section(futures_ctx, meetings)
     divergence_html = _committee_divergence_section(speakers, scores)
@@ -86,6 +90,7 @@ def render(
             total=len(scores),
             meetings_html=meetings_html,
             fomc_html=fomc_html,
+            reactions_html=reactions_html,
             futures_html=futures_html,
             divergence_html=divergence_html,
             speakers_html=rows_html,
@@ -400,6 +405,85 @@ def _fomc_pulse(fomc_scores: list[StoredScore]) -> str:
           <tbody>{"".join(rows)}</tbody>
         </table>""")
     return "\n".join(sections)
+
+
+_REACTION_TICKERS: tuple[tuple[str, str], ...] = (
+    ("ES=F", "S&P (ES)"),
+    ("NQ=F", "Nasdaq (NQ)"),
+)
+
+
+def _fmt_pct_cell(pct: float | None, vol: float | None) -> str:
+    """Render a "+0.42% σ12.3" cell. Empty when pct is None."""
+    if pct is None:
+        return '<span class="muted">—</span>'
+    if abs(pct) < 0.005:
+        cls = "flat"
+    elif pct > 0:
+        cls = "up"
+    else:
+        cls = "down"
+    sign = "+" if pct > 0 else ""
+    body = f'<span class="{cls}">{sign}{pct:.2f}%</span>'
+    if vol is not None and vol > 0:
+        body += f'<span class="vol">σ{vol:.1f}</span>'
+    return body
+
+
+def _market_reaction_section(reactions: list[MarketReaction]) -> str:
+    if not reactions:
+        return '<p class="muted">No FOMC market-reaction data yet — run <code>fed-chirp market-reactions --refresh</code>.</p>'
+
+    # Pivot: meeting_date -> {ticker -> MarketReaction}
+    by_meeting: dict[dt.date, dict[str, MarketReaction]] = {}
+    for r in reactions:
+        by_meeting.setdefault(r.meeting_date, {})[r.ticker] = r
+
+    # Three windows: (column-group label, MarketReaction attribute prefix)
+    windows: tuple[tuple[str, str], ...] = (
+        ("stmt", "stmt"),
+        ("eod", "eod"),
+        ("nextday", "nextday"),
+    )
+
+    meeting_dates = sorted(by_meeting.keys(), reverse=True)
+    rows: list[str] = []
+    for md in meeting_dates:
+        per_ticker = by_meeting[md]
+
+        tds: list[str] = []
+        for w_idx, (_, prefix) in enumerate(windows):
+            for t_idx, (ticker, _) in enumerate(_REACTION_TICKERS):
+                r = per_ticker.get(ticker)
+                pct = getattr(r, f"{prefix}_pct_change", None) if r else None
+                vol = getattr(r, f"{prefix}_realized_vol", None) if r else None
+                cell = _fmt_pct_cell(pct, vol)
+                # Visual divider on the first column of windows 2 and 3.
+                cls = "divider" if (w_idx > 0 and t_idx == 0) else ""
+                if cls:
+                    tds.append(f'<td class="{cls}">{cell}</td>')
+                else:
+                    tds.append(f"<td>{cell}</td>")
+
+        meeting_td = f'<td class="meeting">{md.isoformat()}</td>'
+        rows.append("<tr>" + meeting_td + "".join(tds) + "</tr>")
+
+    body = "\n".join(rows)
+    ticker_th = "".join(f"<th>{html.escape(label)}</th>" for _, label in _REACTION_TICKERS)
+    return f"""
+    <table class="reactions">
+      <thead>
+        <tr>
+          <th class="meeting" rowspan="2">Meeting</th>
+          <th class="group" colspan="2">Statement window<br><span class="muted">14:00→14:30 ET</span></th>
+          <th class="group" colspan="2">Same-day close<br><span class="muted">14:30→16:00 ET</span></th>
+          <th class="group" colspan="2">Next-day close<br><span class="muted">→ next 16:00 ET</span></th>
+        </tr>
+        <tr>{ticker_th}{ticker_th}{ticker_th}</tr>
+      </thead>
+      <tbody>{body}</tbody>
+    </table>
+    """
 
 
 def _render_inline_md(text: str) -> str:
@@ -842,6 +926,16 @@ _PAGE = """<!doctype html>
   .hawk {{ color: """ + HAWK_COLOR + """; }}
   .dove {{ color: """ + DOVE_COLOR + """; }}
   .neutral {{ color: """ + NEUTRAL_COLOR + """; }}
+  .up {{ color: """ + UP_COLOR + """; font-weight: 600; font-variant-numeric: tabular-nums; }}
+  .down {{ color: """ + DOWN_COLOR + """; font-weight: 600; font-variant-numeric: tabular-nums; }}
+  .flat {{ color: #888; font-variant-numeric: tabular-nums; }}
+  table.reactions th, table.reactions td {{ text-align: right; }}
+  table.reactions th.meeting, table.reactions td.meeting {{ text-align: left; }}
+  table.reactions th.group {{ text-align: center; border-bottom: 1px solid #ddd;
+                              font-size: 0.85em; color: #666; padding-bottom: 0.3rem; }}
+  table.reactions td .vol {{ color: #999; font-size: 0.82em; margin-left: 0.3rem;
+                              font-weight: normal; }}
+  table.reactions td.divider {{ border-left: 1px solid #eee; }}
   .muted {{ color: #999; font-weight: normal; font-size: 0.85em; }}
   table.recent td.rationale {{ max-width: 380px; color: #555; }}
   table.recent td a, table.fomc td a {{ color: #1f6feb; }}
@@ -889,6 +983,16 @@ _PAGE = """<!doctype html>
 <h2>FOMC pulse</h2>
 {meetings_html}
 {fomc_html}
+
+<h2>FOMC market reaction</h2>
+<p class="muted">
+  S&amp;P (ES=F) and Nasdaq (NQ=F) intraday moves around each FOMC meeting.
+  <strong>Statement</strong> = 2:00pm → 2:30pm ET (statement → presser);
+  <strong>Same-day close</strong> = 2:30pm → 4:00pm ET;
+  <strong>Next-day close</strong> = 2:30pm ET → next trading day 4:00pm ET.
+  σ = annualized realized volatility (%).
+</p>
+{reactions_html}
 
 <h2>Market-implied path</h2>
 {futures_html}

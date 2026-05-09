@@ -13,9 +13,11 @@ from .analysis.deltas import should_alert
 from .analysis import divergence as divergence_analysis
 from .analysis.fomc_deltas import should_alert_doc
 from .analysis import futures as futures_analysis
+from .analysis import market_reaction as market_reaction_analysis
 from .fetchers import fomc as fomc_fetch
 from .fetchers import futures as futures_fetch
 from .fetchers import fomc_calendar
+from .fetchers import market_data
 from .fetchers.federalreserve import (
     Speaker,
     SpeechRef,
@@ -30,7 +32,7 @@ from .output.dashboard import FuturesContext
 from .output.email_report import AlertItem, FomcAlertItem, send_alerts
 from .scoring.claude_scorer import score_speech
 from .scoring.diff_notes import annotate_statement_diff
-from .storage.db import Database, StoredSpeech
+from .storage.db import Database, MarketReaction, StoredSpeech
 from .utils.log import get_logger
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -69,6 +71,7 @@ def scan(dry_run: bool, config: Path, db_path: Path) -> None:
 
         speech_alerts = _process_speeches(new_speech, speakers, db, pw=pw)
         fomc_alerts = _process_fomc(new_fomc, db)
+        _refresh_market_reactions(db)
         _regenerate_dashboard(speakers, db)
 
     all_alerts: list = list(speech_alerts) + list(fomc_alerts)
@@ -126,6 +129,9 @@ def backfill(
 
         _process_speeches(new_speech, speakers, db, suppress_alerts=True, pw=pw)
         _process_fomc(new_fomc, db, suppress_alerts=True)
+
+    if not only_keys:
+        _refresh_market_reactions(db)
 
     # Always regenerate dashboard against the FULL speaker list, not the
     # --only filtered subset, so the dashboard never loses rows.
@@ -328,6 +334,54 @@ def futures_cmd(db_path: Path, refresh: bool) -> None:
             f"  {mr.meeting_date}  {mr.rate_after:.3f}%  "
             f"(Δ {mr.delta_bp:+.1f} bp)  {fmt}"
         )
+
+
+@cli.command("market-reactions")
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+@click.option("--refresh/--no-refresh", default=True,
+              help="Pull fresh intraday bars before printing.")
+@click.option("--force", is_flag=True,
+              help="Re-fetch even meetings already populated.")
+def market_reactions_cmd(db_path: Path, refresh: bool, force: bool) -> None:
+    """Print the FOMC market-reaction table (ES=F + NQ=F) for each meeting
+    with a press conference. Captures the statement window (2:00–2:30pm ET)
+    and the post-presser 24h window."""
+    db = Database(db_path)
+    if refresh:
+        _refresh_market_reactions(db, force=force)
+
+    rows = db.get_market_reactions()
+    if not rows:
+        raise click.ClickException("No market-reaction data — try with --refresh.")
+
+    # Group by meeting for tidy printing.
+    by_meeting: dict[dt.date, dict[str, MarketReaction]] = {}
+    for r in rows:
+        by_meeting.setdefault(r.meeting_date, {})[r.ticker] = r
+
+    def _fmt(v: float | None, width: int = 6, prec: int = 2, sign: bool = True) -> str:
+        if v is None:
+            return "—".rjust(width)
+        return (f"{v:+.{prec}f}" if sign else f"{v:.{prec}f}").rjust(width)
+
+    click.echo(
+        f"{'Meeting':<11}  {'Ticker':<5}  "
+        f"{'Stmt Δ%':>7} {'σ':>5}  "
+        f"{'EOD Δ%':>7} {'σ':>5}  "
+        f"{'NextD Δ%':>8} {'σ':>5}  bars"
+    )
+    for md in sorted(by_meeting.keys(), reverse=True):
+        for ticker in _REACTION_TICKERS:
+            r = by_meeting[md].get(ticker)
+            if r is None:
+                continue
+            click.echo(
+                f"{md.isoformat():<11}  {ticker:<5}  "
+                f"{_fmt(r.stmt_pct_change, 7)} {_fmt(r.stmt_realized_vol, 5, 1, False)}  "
+                f"{_fmt(r.eod_pct_change, 7)} {_fmt(r.eod_realized_vol, 5, 1, False)}  "
+                f"{_fmt(r.nextday_pct_change, 8)} {_fmt(r.nextday_realized_vol, 5, 1, False)}  "
+                f"{r.bar_interval}"
+            )
 
 
 @cli.command("divergence")
@@ -608,8 +662,15 @@ def _process_fomc(
 def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
     scores = db.all_scores()
     ctx = _build_futures_context(db)
-    dash.render(speakers, scores, DEFAULT_DASHBOARD, futures_ctx=ctx)
-    log.info("dashboard: regenerated at %s (%d documents)", DEFAULT_DASHBOARD, len(scores))
+    reactions = db.get_market_reactions()
+    dash.render(
+        speakers, scores, DEFAULT_DASHBOARD,
+        futures_ctx=ctx, reactions=reactions,
+    )
+    log.info(
+        "dashboard: regenerated at %s (%d documents, %d reactions)",
+        DEFAULT_DASHBOARD, len(scores), len(reactions),
+    )
 
 
 def _build_futures_context(db: Database) -> FuturesContext | None:
@@ -657,6 +718,104 @@ def _refresh_futures_and_calendar(db: Database) -> None:
         log.info("futures: fetched %d contracts", len(settlements))
     except Exception as exc:
         log.exception("futures fetch failed: %s", exc)
+
+
+_REACTION_TICKERS: tuple[str, ...] = ("ES=F", "NQ=F")
+
+
+def _refresh_market_reactions(db: Database, *, force: bool = False) -> None:
+    """Populate market_reactions for FOMC meetings that have a presser doc.
+
+    Three windows per (meeting, ticker): statement (14:00->14:30 ET),
+    same-day (14:30->16:00 ET), and next-day-close (14:30 ET -> next
+    trading day 16:00 ET). Skips meetings whose next-day close hasn't
+    yet happened.
+    """
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    fetched_at = now_utc
+
+    pending_dates = db.meeting_dates_with_presser()
+    refreshed = 0
+    for meeting_date in pending_dates:
+        stmt_dt, presser_dt = market_reaction_analysis.fomc_event_times(meeting_date)
+        eod_dt, nextday_dt = market_reaction_analysis.cash_close_times(meeting_date)
+
+        if nextday_dt > now_utc:
+            log.info("market reactions: skipping %s (next-day close not yet reached)",
+                     meeting_date)
+            continue
+
+        if not force and all(
+            db.has_market_reaction(meeting_date, t) for t in _REACTION_TICKERS
+        ):
+            continue
+
+        for ticker in _REACTION_TICKERS:
+            if not force and db.has_market_reaction(meeting_date, ticker):
+                continue
+            try:
+                bars = market_data.fetch_window(ticker, stmt_dt, nextday_dt)
+            except Exception as exc:
+                log.exception("market data fetch failed: %s %s — %s",
+                              ticker, meeting_date, exc)
+                continue
+            if not bars.bars:
+                log.info("market reactions: no bars for %s %s (interval=%s)",
+                         ticker, meeting_date, bars.interval)
+                continue
+
+            stmt_m = market_reaction_analysis.compute_window(bars, stmt_dt, presser_dt)
+            eod_m = market_reaction_analysis.compute_window(bars, presser_dt, eod_dt)
+            nxt_m = market_reaction_analysis.compute_window(bars, presser_dt, nextday_dt)
+
+            def _w(m, attr):
+                return getattr(m, attr) if m else None
+
+            db.insert_market_reaction(MarketReaction(
+                meeting_date=meeting_date,
+                ticker=ticker,
+                statement_release_dt=stmt_dt,
+                presser_start_dt=presser_dt,
+                eod_close_dt=eod_dt,
+                nextday_close_dt=nextday_dt,
+                bar_interval=bars.interval,
+                stmt_open=_w(stmt_m, "open"),
+                stmt_close=_w(stmt_m, "close"),
+                stmt_high=_w(stmt_m, "high"),
+                stmt_low=_w(stmt_m, "low"),
+                stmt_pct_change=_w(stmt_m, "pct_change"),
+                stmt_realized_vol=_w(stmt_m, "realized_vol"),
+                stmt_range_pct=_w(stmt_m, "range_pct"),
+                stmt_max_move_pct=_w(stmt_m, "max_move_pct"),
+                eod_open=_w(eod_m, "open"),
+                eod_close=_w(eod_m, "close"),
+                eod_high=_w(eod_m, "high"),
+                eod_low=_w(eod_m, "low"),
+                eod_pct_change=_w(eod_m, "pct_change"),
+                eod_realized_vol=_w(eod_m, "realized_vol"),
+                eod_range_pct=_w(eod_m, "range_pct"),
+                eod_max_move_pct=_w(eod_m, "max_move_pct"),
+                nextday_open=_w(nxt_m, "open"),
+                nextday_close=_w(nxt_m, "close"),
+                nextday_high=_w(nxt_m, "high"),
+                nextday_low=_w(nxt_m, "low"),
+                nextday_pct_change=_w(nxt_m, "pct_change"),
+                nextday_realized_vol=_w(nxt_m, "realized_vol"),
+                nextday_range_pct=_w(nxt_m, "range_pct"),
+                nextday_max_move_pct=_w(nxt_m, "max_move_pct"),
+                fetched_at=fetched_at,
+            ))
+            refreshed += 1
+            log.info(
+                "market reactions: %s %s -> stmt %s / eod %s / nextday %s (%s bars)",
+                ticker, meeting_date,
+                f"{stmt_m.pct_change:+.2f}%" if stmt_m else "—",
+                f"{eod_m.pct_change:+.2f}%" if eod_m else "—",
+                f"{nxt_m.pct_change:+.2f}%" if nxt_m else "—",
+                bars.interval,
+            )
+
+    log.info("market reactions: %d rows refreshed", refreshed)
 
 
 _REGIONAL_HOSTS: dict[str, str] = {

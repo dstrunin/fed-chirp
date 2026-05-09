@@ -60,6 +60,47 @@ CREATE TABLE IF NOT EXISTS fomc_meetings (
     has_press_conf  INTEGER NOT NULL DEFAULT 1,
     fetched_at      TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS market_reactions (
+    meeting_date          TEXT NOT NULL,
+    ticker                TEXT NOT NULL,
+    statement_release_dt  TEXT NOT NULL,        -- 14:00 ET, statement release
+    presser_start_dt      TEXT NOT NULL,        -- 14:30 ET, presser start
+    eod_close_dt          TEXT NOT NULL,        -- 16:00 ET same day, cash close
+    nextday_close_dt      TEXT NOT NULL,        -- 16:00 ET next trading day
+    bar_interval          TEXT NOT NULL,        -- '1m'|'5m'|'15m'|'1h'|'none'
+    -- Statement window: 14:00 ET -> 14:30 ET (NULL on coarse bars)
+    stmt_open             REAL,
+    stmt_close            REAL,
+    stmt_high             REAL,
+    stmt_low              REAL,
+    stmt_pct_change       REAL,
+    stmt_realized_vol     REAL,
+    stmt_range_pct        REAL,
+    stmt_max_move_pct     REAL,
+    -- Same-day (EOD) window: 14:30 ET -> 16:00 ET (NULL on coarse bars)
+    eod_open              REAL,
+    eod_close             REAL,
+    eod_high              REAL,
+    eod_low               REAL,
+    eod_pct_change        REAL,
+    eod_realized_vol      REAL,
+    eod_range_pct         REAL,
+    eod_max_move_pct      REAL,
+    -- Next-day-close window: 14:30 ET -> next trading day 16:00 ET
+    nextday_open          REAL,
+    nextday_close         REAL,
+    nextday_high          REAL,
+    nextday_low           REAL,
+    nextday_pct_change    REAL,
+    nextday_realized_vol  REAL,
+    nextday_range_pct     REAL,
+    nextday_max_move_pct  REAL,
+    fetched_at            TEXT NOT NULL,
+    PRIMARY KEY (meeting_date, ticker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_reactions_date ON market_reactions(meeting_date);
 """
 
 
@@ -72,6 +113,56 @@ class StoredSpeech:
     location: str
     body: str
     doc_type: str = "speech"
+
+
+@dataclass
+class MarketReaction:
+    """Realized intraday move on an index future around an FOMC meeting.
+
+    Three windows, all measured on the same ticker:
+      - stmt_*:    statement release (14:00 ET) -> presser start (14:30 ET)
+      - eod_*:     presser start (14:30 ET)     -> cash close (16:00 ET) same day
+      - nextday_*: presser start (14:30 ET)     -> cash close (16:00 ET) next trading day
+
+    Short windows (stmt, eod) become NULL when the bar interval is too coarse
+    to fit 2+ bars (1h bars on meetings older than ~60 days). The 25.5h
+    next-day window is always populated when any bars exist.
+    """
+    meeting_date: dt.date
+    ticker: str
+    statement_release_dt: dt.datetime
+    presser_start_dt: dt.datetime
+    eod_close_dt: dt.datetime
+    nextday_close_dt: dt.datetime
+    bar_interval: str
+    # Statement window
+    stmt_open: float | None
+    stmt_close: float | None
+    stmt_high: float | None
+    stmt_low: float | None
+    stmt_pct_change: float | None
+    stmt_realized_vol: float | None
+    stmt_range_pct: float | None
+    stmt_max_move_pct: float | None
+    # Same-day (presser -> 16:00 ET) window
+    eod_open: float | None
+    eod_close: float | None
+    eod_high: float | None
+    eod_low: float | None
+    eod_pct_change: float | None
+    eod_realized_vol: float | None
+    eod_range_pct: float | None
+    eod_max_move_pct: float | None
+    # Next-day close window
+    nextday_open: float | None
+    nextday_close: float | None
+    nextday_high: float | None
+    nextday_low: float | None
+    nextday_pct_change: float | None
+    nextday_realized_vol: float | None
+    nextday_range_pct: float | None
+    nextday_max_move_pct: float | None
+    fetched_at: dt.datetime
 
 
 @dataclass
@@ -115,6 +206,17 @@ class Database:
             }
             if "diff_notes" not in score_cols:
                 conn.execute("ALTER TABLE speech_scores ADD COLUMN diff_notes TEXT")
+
+            # Migration: market_reactions schema changed pres_* -> eod_*/nextday_*.
+            # The data is fully re-derivable from yfinance, so we just drop and
+            # let the recreate above (run again below) install the new shape.
+            mr_cols = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(market_reactions)")
+            }
+            if mr_cols and "pres_open" in mr_cols and "eod_open" not in mr_cols:
+                conn.execute("DROP TABLE market_reactions")
+                conn.executescript(SCHEMA)
 
     @contextmanager
     def connect(self):
@@ -428,6 +530,89 @@ class Database:
             ).fetchall()
         return [dt.date.fromisoformat(r["meeting_date"]) for r in rows]
 
+    # ---- market reactions ----
+
+    def insert_market_reaction(self, reaction: MarketReaction) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO market_reactions (
+                    meeting_date, ticker,
+                    statement_release_dt, presser_start_dt,
+                    eod_close_dt, nextday_close_dt,
+                    bar_interval,
+                    stmt_open, stmt_close, stmt_high, stmt_low,
+                    stmt_pct_change, stmt_realized_vol,
+                    stmt_range_pct, stmt_max_move_pct,
+                    eod_open, eod_close, eod_high, eod_low,
+                    eod_pct_change, eod_realized_vol,
+                    eod_range_pct, eod_max_move_pct,
+                    nextday_open, nextday_close, nextday_high, nextday_low,
+                    nextday_pct_change, nextday_realized_vol,
+                    nextday_range_pct, nextday_max_move_pct,
+                    fetched_at
+                ) VALUES (
+                    ?,?,?,?,?,?,?,
+                    ?,?,?,?,?,?,?,?,
+                    ?,?,?,?,?,?,?,?,
+                    ?,?,?,?,?,?,?,?,
+                    ?
+                )""",
+                (
+                    reaction.meeting_date.isoformat(),
+                    reaction.ticker,
+                    reaction.statement_release_dt.isoformat(),
+                    reaction.presser_start_dt.isoformat(),
+                    reaction.eod_close_dt.isoformat(),
+                    reaction.nextday_close_dt.isoformat(),
+                    reaction.bar_interval,
+                    reaction.stmt_open, reaction.stmt_close,
+                    reaction.stmt_high, reaction.stmt_low,
+                    reaction.stmt_pct_change, reaction.stmt_realized_vol,
+                    reaction.stmt_range_pct, reaction.stmt_max_move_pct,
+                    reaction.eod_open, reaction.eod_close,
+                    reaction.eod_high, reaction.eod_low,
+                    reaction.eod_pct_change, reaction.eod_realized_vol,
+                    reaction.eod_range_pct, reaction.eod_max_move_pct,
+                    reaction.nextday_open, reaction.nextday_close,
+                    reaction.nextday_high, reaction.nextday_low,
+                    reaction.nextday_pct_change, reaction.nextday_realized_vol,
+                    reaction.nextday_range_pct, reaction.nextday_max_move_pct,
+                    reaction.fetched_at.isoformat(),
+                ),
+            )
+
+    def get_market_reactions(self, limit: int | None = None) -> list[MarketReaction]:
+        sql = (
+            "SELECT * FROM market_reactions "
+            "ORDER BY meeting_date DESC, ticker ASC"
+        )
+        params: tuple = ()
+        if limit is not None:
+            sql += " LIMIT ?"
+            params = (limit,)
+        with self.connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [_row_to_reaction(r) for r in rows]
+
+    def has_market_reaction(self, meeting_date: dt.date, ticker: str) -> bool:
+        with self.connect() as conn:
+            r = conn.execute(
+                "SELECT 1 FROM market_reactions WHERE meeting_date = ? AND ticker = ?",
+                (meeting_date.isoformat(), ticker),
+            ).fetchone()
+        return r is not None
+
+    def meeting_dates_with_presser(self) -> list[dt.date]:
+        """Distinct meeting dates that have an FOMC press-conference doc
+        already stored (presser PDF was found and ingested)."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT DISTINCT speech_date FROM speeches
+                   WHERE doc_type = 'fomc_presser'
+                   ORDER BY speech_date DESC"""
+            ).fetchall()
+        return [dt.date.fromisoformat(r["speech_date"]) for r in rows]
+
     def latest_calendar_fetch(self) -> dt.datetime | None:
         with self.connect() as conn:
             r = conn.execute(
@@ -436,6 +621,37 @@ class Database:
         if r is None or r["f"] is None:
             return None
         return dt.datetime.fromisoformat(r["f"])
+
+
+def _row_to_reaction(r: sqlite3.Row) -> MarketReaction:
+    return MarketReaction(
+        meeting_date=dt.date.fromisoformat(r["meeting_date"]),
+        ticker=r["ticker"],
+        statement_release_dt=dt.datetime.fromisoformat(r["statement_release_dt"]),
+        presser_start_dt=dt.datetime.fromisoformat(r["presser_start_dt"]),
+        eod_close_dt=dt.datetime.fromisoformat(r["eod_close_dt"]),
+        nextday_close_dt=dt.datetime.fromisoformat(r["nextday_close_dt"]),
+        bar_interval=r["bar_interval"],
+        stmt_open=r["stmt_open"], stmt_close=r["stmt_close"],
+        stmt_high=r["stmt_high"], stmt_low=r["stmt_low"],
+        stmt_pct_change=r["stmt_pct_change"],
+        stmt_realized_vol=r["stmt_realized_vol"],
+        stmt_range_pct=r["stmt_range_pct"],
+        stmt_max_move_pct=r["stmt_max_move_pct"],
+        eod_open=r["eod_open"], eod_close=r["eod_close"],
+        eod_high=r["eod_high"], eod_low=r["eod_low"],
+        eod_pct_change=r["eod_pct_change"],
+        eod_realized_vol=r["eod_realized_vol"],
+        eod_range_pct=r["eod_range_pct"],
+        eod_max_move_pct=r["eod_max_move_pct"],
+        nextday_open=r["nextday_open"], nextday_close=r["nextday_close"],
+        nextday_high=r["nextday_high"], nextday_low=r["nextday_low"],
+        nextday_pct_change=r["nextday_pct_change"],
+        nextday_realized_vol=r["nextday_realized_vol"],
+        nextday_range_pct=r["nextday_range_pct"],
+        nextday_max_move_pct=r["nextday_max_move_pct"],
+        fetched_at=dt.datetime.fromisoformat(r["fetched_at"]),
+    )
 
 
 def _row_to_score(r: sqlite3.Row) -> StoredScore:
