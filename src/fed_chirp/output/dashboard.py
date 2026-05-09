@@ -828,7 +828,9 @@ _PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Fed Chirp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fed Chirp — Hawkish/Dovish Tone Tracker for Fed Speeches &amp; FOMC</title>
+<meta name="description" content="Daily-updated hawkish/dovish tone scores for Federal Reserve Board governor speeches, FOMC statements, minutes, and press conferences."/>
 <style>
   body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
          margin: 2rem auto; max-width: 1100px; padding: 0 1rem; color: #222; }}
