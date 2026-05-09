@@ -28,10 +28,10 @@ class WindowMetrics:
     close: float
     high: float
     low: float
-    pct_change: float       # (close - open) / open * 100
-    realized_vol: float     # annualized stdev of bar log returns, %
-    range_pct: float        # (high - low) / open * 100
-    max_move_pct: float     # max |running close - open| / open * 100, signed by direction
+    pct_change: float            # (close - open) / open * 100
+    realized_vol: float | None   # annualized stdev of bar log returns, %; None if <2 returns
+    range_pct: float             # (high - low) / open * 100
+    max_move_pct: float          # max |running close - open| / open * 100, signed by direction
 
 
 def fomc_event_times(meeting_date: dt.date) -> tuple[dt.datetime, dt.datetime]:
@@ -122,8 +122,12 @@ def compute_window(
     for prev, cur in zip(closes[:-1], closes[1:], strict=False):
         if prev > 0 and cur > 0:
             log_rets.append(math.log(cur / prev))
+    realized_vol: float | None
     if len(log_rets) < 2:
-        realized_vol = 0.0
+        # Need at least 2 returns to compute a sample stdev with Bessel's
+        # correction. Returning None is honest about "couldn't compute"
+        # rather than reporting a misleading 0.
+        realized_vol = None
     else:
         mean = sum(log_rets) / len(log_rets)
         var = sum((x - mean) ** 2 for x in log_rets) / (len(log_rets) - 1)
