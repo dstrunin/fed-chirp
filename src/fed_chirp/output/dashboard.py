@@ -537,10 +537,11 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
         by_meeting.setdefault(r.meeting_date, {})[r.ticker] = r
 
     # Three windows: (column-group label, MarketReaction attribute prefix)
+    # (table-prefix, mobile-card label fragment)
     windows: tuple[tuple[str, str], ...] = (
         ("stmt", "stmt"),
-        ("eod", "eod"),
-        ("nextday", "nextday"),
+        ("eod", "EOD"),
+        ("nextday", "next-day"),
     )
 
     meeting_dates = sorted(by_meeting.keys(), reverse=True)
@@ -549,27 +550,30 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
         per_ticker = by_meeting[md]
 
         tds: list[str] = []
-        for w_idx, (_, prefix) in enumerate(windows):
-            for t_idx, (ticker, _) in enumerate(_REACTION_TICKERS):
+        for w_idx, (prefix, window_label) in enumerate(windows):
+            for t_idx, (ticker, ticker_label) in enumerate(_REACTION_TICKERS):
                 r = per_ticker.get(ticker)
                 pct = getattr(r, f"{prefix}_pct_change", None) if r else None
                 vol = getattr(r, f"{prefix}_realized_vol", None) if r else None
                 cell = _fmt_pct_cell(pct, vol)
+                # Compact data-label for the mobile card layout — desktop hides
+                # data-labels via the @media query so this is mobile-only text.
+                short_ticker = ticker_label.split()[0]  # "S&P" / "Nasdaq"
+                data_label = f'{short_ticker} {window_label}'
                 # Visual divider on the first column of windows 2 and 3.
                 cls = "divider" if (w_idx > 0 and t_idx == 0) else ""
-                if cls:
-                    tds.append(f'<td class="{cls}">{cell}</td>')
-                else:
-                    tds.append(f"<td>{cell}</td>")
+                cls_attr = f' class="{cls}"' if cls else ""
+                tds.append(
+                    f'<td{cls_attr} data-label="{html.escape(data_label)}">{cell}</td>'
+                )
 
-        meeting_td = f'<td class="meeting">{md.isoformat()}</td>'
+        meeting_td = f'<td class="meeting" data-label="Meeting">{md.isoformat()}</td>'
         rows.append("<tr>" + meeting_td + "".join(tds) + "</tr>")
 
     body = "\n".join(rows)
     ticker_th = "".join(f"<th>{html.escape(label)}</th>" for _, label in _REACTION_TICKERS)
     return f"""
-    <div class="scroll-x">
-    <table class="reactions">
+    <table class="reactions cards">
       <thead>
         <tr>
           <th class="meeting" rowspan="2">Meeting</th>
@@ -581,7 +585,6 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
       </thead>
       <tbody>{body}</tbody>
     </table>
-    </div>
     """
 
 
@@ -683,18 +686,21 @@ def _market_implied_section(
             for b in buckets:
                 v = p.buckets.get(b, 0.0)
                 cls = _bucket_cell_class(v)
-                cells.append(f'<td class="bucket-cell {cls}">{v*100:.0f}%</td>')
+                bucket_label = _bucket_label(b)
+                cells.append(
+                    f'<td class="bucket-cell {cls}" '
+                    f'data-label="{html.escape(bucket_label)}">{v*100:.0f}%</td>'
+                )
             body_rows.append(
                 f"""<tr>
-                  <td>{mr.meeting_date.isoformat()}</td>
-                  <td>{mr.rate_after:.3f}%</td>
-                  <td class="score {_polarity_class(-mr.delta_bp/50)}">{mr.delta_bp:+.1f} bp</td>
+                  <td data-label="Meeting">{mr.meeting_date.isoformat()}</td>
+                  <td data-label="Implied rate after">{mr.rate_after:.3f}%</td>
+                  <td class="score {_polarity_class(-mr.delta_bp/50)}" data-label="Δ at meeting">{mr.delta_bp:+.1f} bp</td>
                   {''.join(cells)}
                 </tr>"""
             )
         per_meeting_table = f"""
-            <div class="scroll-x">
-            <table class="fomc">
+            <table class="fomc cards">
               <thead><tr>
                 <th>Meeting</th>
                 <th>Implied rate after</th>
@@ -702,8 +708,7 @@ def _market_implied_section(
                 {header_cells}
               </tr></thead>
               <tbody>{''.join(body_rows)}</tbody>
-            </table>
-            </div>"""
+            </table>"""
     else:
         per_meeting_table = (
             '<p class="muted">No upcoming meetings within the chain window.</p>'
@@ -1099,7 +1104,7 @@ _PAGE = """<!doctype html>
     table.cards tr {{ border: 1px solid #eee; border-radius: 6px;
                       padding: 0.5rem 0.7rem; margin: 0.55rem 0; }}
     table.cards td {{ border: none; padding: 0.22rem 0;
-                     font-size: 0.95rem; }}
+                     font-size: 0.95rem; text-align: left; }}
     table.cards td::before {{
       content: attr(data-label) ":";
       display: inline-block;
@@ -1109,6 +1114,14 @@ _PAGE = """<!doctype html>
       font-weight: 500;
       margin-right: 0.4rem;
     }}
+    /* Reactions table cells are normally right-aligned + have column
+       dividers on desktop; in card mode each cell is its own row, so
+       drop those rules. */
+    table.reactions.cards td {{ text-align: left; border-left: none; }}
+    /* Bucket-cell (probability) is centered on desktop; align with the
+       data-label like other card cells. Keep the color background so
+       "this bucket has high probability" still pops visually. */
+    table.cards td.bucket-cell {{ text-align: left; padding-left: 0; }}
     /* Long rationale wraps onto its own line under the label */
     table.cards td.rationale {{ max-width: none; }}
     table.cards td.rationale::before {{ display: block; margin-bottom: 0.2rem; }}

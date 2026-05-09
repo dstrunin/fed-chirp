@@ -91,7 +91,7 @@
     table.cards tr { border: 1px solid #eee; border-radius: 6px;
                       padding: 0.5rem 0.7rem; margin: 0.55rem 0; }
     table.cards td { border: none; padding: 0.22rem 0;
-                     font-size: 0.95rem; }
+                     font-size: 0.95rem; text-align: left; }
     table.cards td::before {
       content: attr(data-label) ":";
       display: inline-block;
@@ -101,6 +101,14 @@
       font-weight: 500;
       margin-right: 0.4rem;
     }
+    /* Reactions table cells are normally right-aligned + have column
+       dividers on desktop; in card mode each cell is its own row, so
+       drop those rules. */
+    table.reactions.cards td { text-align: left; border-left: none; }
+    /* Bucket-cell (probability) is centered on desktop; align with the
+       data-label like other card cells. Keep the color background so
+       "this bucket has high probability" still pops visually. */
+    table.cards td.bucket-cell { text-align: left; padding-left: 0; }
     /* Long rationale wraps onto its own line under the label */
     table.cards td.rationale { max-width: none; }
     table.cards td.rationale::before { display: block; margin-bottom: 0.2rem; }
@@ -138,7 +146,7 @@
 </head>
 <body>
 <h1>Fed Chirp <span class="beta-tag">beta</span></h1>
-<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T22:17:50+00:00">May 9, 2026, 10:17 PM UTC</time> &middot; 417 speeches scored</div>
+<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T22:22:30+00:00">May 9, 2026, 10:22 PM UTC</time> &middot; 417 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -308,8 +316,7 @@
   σ = annualized realized volatility (%).
 </p>
 
-    <div class="scroll-x">
-    <table class="reactions">
+    <table class="reactions cards">
       <thead>
         <tr>
           <th class="meeting" rowspan="2">Meeting</th>
@@ -319,12 +326,11 @@
         </tr>
         <tr><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th><th>S&amp;P (ES)</th><th>Nasdaq (NQ)</th></tr>
       </thead>
-      <tbody><tr><td class="meeting">2026-04-29</td><td><span class="down">-0.19%</span><span class="vol">σ19.6</span></td><td><span class="down">-0.15%</span><span class="vol">σ26.3</span></td><td class="divider"><span class="up">+0.34%</span><span class="vol">σ22.2</span></td><td><span class="up">+0.47%</span><span class="vol">σ28.2</span></td><td class="divider"><span class="up">+1.29%</span><span class="vol">σ20.9</span></td><td><span class="up">+1.35%</span><span class="vol">σ32.5</span></td></tr>
-<tr><td class="meeting">2026-03-18</td><td><span class="down">-0.10%</span><span class="vol">σ26.4</span></td><td><span class="down">-0.10%</span><span class="vol">σ27.8</span></td><td class="divider"><span class="down">-0.69%</span><span class="vol">σ23.5</span></td><td><span class="down">-0.82%</span><span class="vol">σ27.6</span></td><td class="divider"><span class="down">-0.97%</span><span class="vol">σ24.0</span></td><td><span class="down">-1.13%</span><span class="vol">σ28.4</span></td></tr>
-<tr><td class="meeting">2026-01-28</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="down">-0.16%</span><span class="vol">σ27.2</span></td><td><span class="down">-0.64%</span><span class="vol">σ40.0</span></td></tr>
-<tr><td class="meeting">2025-12-10</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="up">+0.16%</span><span class="vol">σ16.6</span></td><td><span class="down">-0.42%</span><span class="vol">σ26.8</span></td></tr></tbody>
+      <tbody><tr><td class="meeting" data-label="Meeting">2026-04-29</td><td data-label="S&amp;P stmt"><span class="down">-0.19%</span><span class="vol">σ19.6</span></td><td data-label="Nasdaq stmt"><span class="down">-0.15%</span><span class="vol">σ26.3</span></td><td class="divider" data-label="S&amp;P EOD"><span class="up">+0.34%</span><span class="vol">σ22.2</span></td><td data-label="Nasdaq EOD"><span class="up">+0.47%</span><span class="vol">σ28.2</span></td><td class="divider" data-label="S&amp;P next-day"><span class="up">+1.29%</span><span class="vol">σ20.9</span></td><td data-label="Nasdaq next-day"><span class="up">+1.35%</span><span class="vol">σ32.5</span></td></tr>
+<tr><td class="meeting" data-label="Meeting">2026-03-18</td><td data-label="S&amp;P stmt"><span class="down">-0.10%</span><span class="vol">σ26.4</span></td><td data-label="Nasdaq stmt"><span class="down">-0.10%</span><span class="vol">σ27.8</span></td><td class="divider" data-label="S&amp;P EOD"><span class="down">-0.69%</span><span class="vol">σ23.5</span></td><td data-label="Nasdaq EOD"><span class="down">-0.82%</span><span class="vol">σ27.6</span></td><td class="divider" data-label="S&amp;P next-day"><span class="down">-0.97%</span><span class="vol">σ24.0</span></td><td data-label="Nasdaq next-day"><span class="down">-1.13%</span><span class="vol">σ28.4</span></td></tr>
+<tr><td class="meeting" data-label="Meeting">2026-01-28</td><td data-label="S&amp;P stmt"><span class="muted">—</span></td><td data-label="Nasdaq stmt"><span class="muted">—</span></td><td class="divider" data-label="S&amp;P EOD"><span class="muted">—</span></td><td data-label="Nasdaq EOD"><span class="muted">—</span></td><td class="divider" data-label="S&amp;P next-day"><span class="down">-0.16%</span><span class="vol">σ27.2</span></td><td data-label="Nasdaq next-day"><span class="down">-0.64%</span><span class="vol">σ40.0</span></td></tr>
+<tr><td class="meeting" data-label="Meeting">2025-12-10</td><td data-label="S&amp;P stmt"><span class="muted">—</span></td><td data-label="Nasdaq stmt"><span class="muted">—</span></td><td class="divider" data-label="S&amp;P EOD"><span class="muted">—</span></td><td data-label="Nasdaq EOD"><span class="muted">—</span></td><td class="divider" data-label="S&amp;P next-day"><span class="up">+0.16%</span><span class="vol">σ16.6</span></td><td data-label="Nasdaq next-day"><span class="down">-0.42%</span><span class="vol">σ26.8</span></td></tr></tbody>
     </table>
-    </div>
     
 
 <h2>Market-implied path</h2>
@@ -352,8 +358,7 @@
             </div>
         <h4>Next FOMC meetings (implied move probabilities)</h4>
         
-            <div class="scroll-x">
-            <table class="fomc">
+            <table class="fomc cards">
               <thead><tr>
                 <th>Meeting</th>
                 <th>Implied rate after</th>
@@ -361,38 +366,37 @@
                 <th>Cut 25 bp</th><th>Hold</th><th>Hike 25 bp</th>
               </tr></thead>
               <tbody><tr>
-                  <td>2026-06-17</td>
-                  <td>3.616%</td>
-                  <td class="score neutral">-1.6 bp</td>
-                  <td class="bucket-cell bucket-weak">6%</td><td class="bucket-cell bucket-strong">94%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td data-label="Meeting">2026-06-17</td>
+                  <td data-label="Implied rate after">3.616%</td>
+                  <td class="score neutral" data-label="Δ at meeting">-1.6 bp</td>
+                  <td class="bucket-cell bucket-weak" data-label="Cut 25 bp">6%</td><td class="bucket-cell bucket-strong" data-label="Hold">94%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">0%</td>
                 </tr><tr>
-                  <td>2026-07-29</td>
-                  <td>3.602%</td>
-                  <td class="score neutral">-1.5 bp</td>
-                  <td class="bucket-cell bucket-weak">6%</td><td class="bucket-cell bucket-strong">94%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td data-label="Meeting">2026-07-29</td>
+                  <td data-label="Implied rate after">3.602%</td>
+                  <td class="score neutral" data-label="Δ at meeting">-1.5 bp</td>
+                  <td class="bucket-cell bucket-weak" data-label="Cut 25 bp">6%</td><td class="bucket-cell bucket-strong" data-label="Hold">94%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">0%</td>
                 </tr><tr>
-                  <td>2026-09-16</td>
-                  <td>3.610%</td>
-                  <td class="score neutral">+1.0 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">96%</td><td class="bucket-cell bucket-zero">4%</td>
+                  <td data-label="Meeting">2026-09-16</td>
+                  <td data-label="Implied rate after">3.610%</td>
+                  <td class="score neutral" data-label="Δ at meeting">+1.0 bp</td>
+                  <td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">96%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">4%</td>
                 </tr><tr>
-                  <td>2026-10-28</td>
-                  <td>3.571%</td>
-                  <td class="score neutral">-3.9 bp</td>
-                  <td class="bucket-cell bucket-weak">16%</td><td class="bucket-cell bucket-strong">84%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td data-label="Meeting">2026-10-28</td>
+                  <td data-label="Implied rate after">3.571%</td>
+                  <td class="score neutral" data-label="Δ at meeting">-3.9 bp</td>
+                  <td class="bucket-cell bucket-weak" data-label="Cut 25 bp">16%</td><td class="bucket-cell bucket-strong" data-label="Hold">84%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">0%</td>
                 </tr><tr>
-                  <td>2026-12-09</td>
-                  <td>3.647%</td>
-                  <td class="score neutral">+2.7 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">89%</td><td class="bucket-cell bucket-weak">11%</td>
+                  <td data-label="Meeting">2026-12-09</td>
+                  <td data-label="Implied rate after">3.647%</td>
+                  <td class="score neutral" data-label="Δ at meeting">+2.7 bp</td>
+                  <td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">89%</td><td class="bucket-cell bucket-weak" data-label="Hike 25 bp">11%</td>
                 </tr><tr>
-                  <td>2027-01-27</td>
-                  <td>3.635%</td>
-                  <td class="score neutral">-1.2 bp</td>
-                  <td class="bucket-cell bucket-zero">5%</td><td class="bucket-cell bucket-strong">95%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td data-label="Meeting">2027-01-27</td>
+                  <td data-label="Implied rate after">3.635%</td>
+                  <td class="score neutral" data-label="Δ at meeting">-1.2 bp</td>
+                  <td class="bucket-cell bucket-zero" data-label="Cut 25 bp">5%</td><td class="bucket-cell bucket-strong" data-label="Hold">95%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">0%</td>
                 </tr></tbody>
             </table>
-            </div>
         <p class="meta">
           Probabilities are computed from settlement-implied per-meeting rate
           changes via the standard CME-FedWatch step-path methodology (linear
