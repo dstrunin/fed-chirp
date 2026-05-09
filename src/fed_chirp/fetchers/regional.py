@@ -1043,13 +1043,21 @@ def discover_regional(
             # before they land). Skip silently so partial commits don't crash.
             continue
         try:
-            refs.extend(parser.discover(sp, since, pw=pw))
+            sp_refs = parser.discover(sp, since, pw=pw)
         except Exception as exc:
             # One bank's outage shouldn't break the rest of the run.
             from ..utils.log import get_logger
             get_logger().exception(
                 "regional discover failed for %s: %s", sp.key, exc
             )
+            continue
+        # Drop speeches dated before the speaker's tenure start. Regional bank
+        # listings often expose the entire historical archive (Boston shows
+        # Rosengren back to 2007; Richmond exposes Broaddus/Lacker URLs);
+        # without this filter those get attributed to the current president.
+        if sp.tenure_start is not None:
+            sp_refs = [r for r in sp_refs if r.pub_date >= sp.tenure_start]
+        refs.extend(sp_refs)
     return refs
 
 

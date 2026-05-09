@@ -99,6 +99,7 @@ speakers:
     source: regional_rss_html
     rss: https://www.atlantafed.org/rss/speechindex
     aliases: []
+    tenure_start: 2017-06-05
 
   - key: richmond_barkin
     name: Thomas I. Barkin
@@ -107,6 +108,7 @@ speakers:
     source: regional_rss_html
     rss: https://www.richmondfed.org/press_room/speeches?cc_view=rss
     aliases: []
+    tenure_start: 2018-01-01
 
   # Group B — HTML index (server-rendered)
   - key: boston_collins
@@ -117,6 +119,9 @@ speakers:
     rss: null
     index_url: https://www.bostonfed.org/news-and-events/speeches.aspx
     aliases: []
+    # Boston Fed's listing page exposes the entire archive back to Rosengren
+    # (2007); without this filter every old speech gets attributed to Collins.
+    tenure_start: 2022-07-01
 
   - key: ny_williams
     name: John C. Williams
@@ -126,6 +131,7 @@ speakers:
     rss: null
     index_url: https://www.newyorkfed.org/newsevents/speeches/index
     aliases: []
+    tenure_start: 2018-06-18
 
   - key: sf_daly
     name: Mary C. Daly
@@ -135,6 +141,7 @@ speakers:
     rss: null
     index_url: https://www.frbsf.org/news-and-media/speeches/
     aliases: []
+    tenure_start: 2018-10-01
 
   # Group C — JavaScript-required (Playwright). Parsers added in Phase 4 step 3.
   - key: chicago_goolsbee
@@ -148,6 +155,7 @@ speakers:
     # backfill the rest manually via score-one if needed.
     index_url: https://www.chicagofed.org
     aliases: []
+    tenure_start: 2023-01-09
 
   - key: cleveland_hammack
     name: Beth M. Hammack
@@ -157,6 +165,7 @@ speakers:
     rss: null
     index_url: https://www.clevelandfed.org/collections/speeches
     aliases: []
+    tenure_start: 2024-08-21
 
   - key: stl_musalem
     name: Alberto G. Musalem
@@ -166,6 +175,7 @@ speakers:
     rss: null
     index_url: https://www.stlouisfed.org/from-the-president/remarks
     aliases: []
+    tenure_start: 2024-04-02
 
   - key: philly_paulson
     name: Anna Paulson
@@ -177,6 +187,7 @@ speakers:
     # (no per-person speeches index page exists).
     index_url: https://www.philadelphiafed.org/the-economy/monetary-policy
     aliases: []
+    tenure_start: 2024-07-01
 
   - key: mpls_kashkari
     name: Neel Kashkari
@@ -187,6 +198,7 @@ speakers:
     # Mpls lists Kashkari's speeches on his profile page.
     index_url: https://www.minneapolisfed.org/people/neel-kashkari
     aliases: []
+    tenure_start: 2016-01-01
 
   - key: kc_schmid
     name: Jeffrey R. Schmid
@@ -196,6 +208,7 @@ speakers:
     rss: null
     index_url: https://www.kansascityfed.org/speeches/
     aliases: []
+    tenure_start: 2023-08-21
 
   - key: dallas_logan
     name: Lorie K. Logan
@@ -205,3 +218,4 @@ speakers:
     rss: null
     index_url: https://www.dallasfed.org/news/speeches/logan
     aliases: []
+    tenure_start: 2022-08-22
