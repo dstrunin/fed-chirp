@@ -21,6 +21,7 @@ from ..analysis import divergence as divergence_analysis
 from ..analysis import futures as futures_analysis
 from ..analysis.health import StaleSpeaker
 from ..fetchers.federalreserve import Speaker
+from ..storage.db import ProcessingSkip
 from ..fetchers.fomc import (
     DOC_MINUTES,
     DOC_PRESSER,
@@ -61,6 +62,7 @@ def render(
     futures_ctx: FuturesContext | None = None,
     reactions: list[MarketReaction] | None = None,
     stale: list[StaleSpeaker] | None = None,
+    skips: list[ProcessingSkip] | None = None,
 ) -> None:
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
@@ -87,6 +89,7 @@ def render(
     futures_html = _market_implied_section(futures_ctx, meetings)
     divergence_html = _committee_divergence_section(speakers, scores)
     health_html = _coverage_health_section(stale or [])
+    skips_html = _skips_section(speakers, skips or [])
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -102,9 +105,59 @@ def render(
             speakers_html=rows_html,
             recent_html=recent_html,
             health_html=health_html,
+            skips_html=skips_html,
         ),
         encoding="utf-8",
     )
+
+
+_SKIP_REASON_LABELS = {
+    "fetch_failed": "Fetch failed",
+    "captions_unavailable": "YouTube captions unavailable",
+    "filter_rejected": "Failed speech-likeness filter",
+    "rubric_excluded": "Excluded by rubric (non-MP topic)",
+}
+
+
+def _skips_section(speakers: list[Speaker], skips: list[ProcessingSkip]) -> str:
+    if not skips:
+        return ""
+    by_key = {sp.key: sp for sp in speakers}
+    rows = []
+    for s in skips:
+        sp = by_key.get(s.speaker_key)
+        speaker_name = sp.name if sp else s.speaker_key
+        date_str = s.pub_date.isoformat() if s.pub_date else "—"
+        reason_label = _SKIP_REASON_LABELS.get(s.reason, s.reason)
+        msg = html.escape(s.message[:240]) if s.message else ""
+        rows.append(
+            f"""<tr>
+              <td>{date_str}</td>
+              <td>{html.escape(speaker_name)}</td>
+              <td>{html.escape(reason_label)}</td>
+              <td class="muted">{msg}</td>
+              <td><a href="{html.escape(s.url)}" rel="noopener">link</a></td>
+            </tr>"""
+        )
+    return f"""
+    <section>
+      <h2>Speeches not scored</h2>
+      <p class="muted">
+        Pieces of content the pipeline saw but did not score, in the trailing
+        90 days. Listed for transparency: each speaker's hawk/dove mean is
+        computed only from items that DO have a score, so it's worth knowing
+        what was deliberately left out.
+      </p>
+      <table class="recent">
+        <thead>
+          <tr>
+            <th>Date</th><th>Speaker</th><th>Reason</th>
+            <th>Note</th><th>URL</th>
+          </tr>
+        </thead>
+        <tbody>{"".join(rows)}</tbody>
+      </table>
+    </section>"""
 
 
 def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
@@ -1084,6 +1137,8 @@ _PAGE = """<!doctype html>
 
 <h2>Recent speeches</h2>
 {recent_html}
+
+{skips_html}
 
 {health_html}
 

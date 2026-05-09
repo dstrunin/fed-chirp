@@ -503,9 +503,17 @@ def _process_speeches(
             speech = fetch_speech(ref, pw=pw)
         except CaptionsUnavailable as exc:
             log.info("youtube captions unavailable: %s — %s", ref.url, exc)
+            db.record_skip(
+                ref.url, ref.speaker_key, ref.pub_date,
+                "captions_unavailable", str(exc),
+            )
             continue
         except Exception as exc:
             log.exception("fetch failed: %s — %s", ref.url, exc)
+            db.record_skip(
+                ref.url, ref.speaker_key, ref.pub_date,
+                "fetch_failed", f"{type(exc).__name__}: {exc}"[:500],
+            )
             continue
 
         canonical_url = db.insert_speech(StoredSpeech(
@@ -528,6 +536,12 @@ def _process_speeches(
                 speaker.key, speech.speech_date, filt.reason,
                 filt.word_count, filt.keyword_hits, filt.link_density,
             )
+            db.record_skip(
+                canonical_url, speaker.key, speech.speech_date,
+                "filter_rejected",
+                f"{filt.reason} (words={filt.word_count}, "
+                f"link_density={filt.link_density:.2f})",
+            )
             continue
 
         try:
@@ -549,6 +563,10 @@ def _process_speeches(
             )
             if db.delete_score(canonical_url):
                 log.info("cleared stale score for excluded speech: %s", canonical_url)
+            db.record_skip(
+                canonical_url, speaker.key, speech.speech_date,
+                "rubric_excluded", result.rationale[:500],
+            )
             continue
 
         db.insert_score(
@@ -560,6 +578,7 @@ def _process_speeches(
             model=result.model,
             scored_at=result.scored_at,
         )
+        db.clear_skip(canonical_url)
         log.info(
             "scored %s %s -> %+.2f (%s)",
             speaker.key, speech.speech_date, result.score, result.label,
@@ -719,9 +738,8 @@ def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
     ctx = _build_futures_context(db)
     reactions = db.get_market_reactions()
     governor_speakers = [sp for sp in speakers if sp.key != fomc_fetch.FOMC_SPEAKER_KEY]
-    stale = health.find_stale(
-        governor_speakers, db.last_speech_dates(), dt.date.today(),
-    )
+    today = dt.date.today()
+    stale = health.find_stale(governor_speakers, db.last_speech_dates(), today)
     for s in stale:
         if s.last_speech_date is None:
             log.warning("coverage health: %s (%s) has NO speeches stored",
@@ -730,13 +748,14 @@ def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
             log.warning("coverage health: %s (%s) silent for %d days (last: %s)",
                         s.speaker.name, s.speaker.region, s.days_silent,
                         s.last_speech_date.isoformat())
+    skips = db.recent_skips(since=today - dt.timedelta(days=90))
     dash.render(
         speakers, scores, DEFAULT_DASHBOARD,
-        futures_ctx=ctx, reactions=reactions, stale=stale,
+        futures_ctx=ctx, reactions=reactions, stale=stale, skips=skips,
     )
     log.info(
-        "dashboard: regenerated at %s (%d documents, %d reactions)",
-        DEFAULT_DASHBOARD, len(scores), len(reactions),
+        "dashboard: regenerated at %s (%d documents, %d reactions, %d skips)",
+        DEFAULT_DASHBOARD, len(scores), len(reactions), len(skips),
     )
 
 
@@ -1065,6 +1084,10 @@ def rescore(
             continue
         if result.score is None:
             db.delete_score(r["url"])
+            db.record_skip(
+                r["url"], r["speaker_key"], speech_date,
+                "rubric_excluded", result.rationale[:500],
+            )
             click.echo(
                 f"excluded: {r['speaker_key']} {speech_date} — {result.rationale}"
             )
@@ -1079,6 +1102,7 @@ def rescore(
                 model=result.model,
                 scored_at=result.scored_at,
             )
+            db.clear_skip(r["url"])
             click.echo(
                 f"scored: {r['speaker_key']} {speech_date} -> "
                 f"{result.score:+.2f} ({result.label})"
@@ -1198,13 +1222,65 @@ def clean(dry_run: bool, db_path: Path) -> None:
                 conn.execute(
                     "DELETE FROM speech_scores WHERE speech_url = ?", (r["url"],),
                 )
+                conn.execute(
+                    """INSERT OR REPLACE INTO processing_skips
+                       (url, speaker_key, pub_date, reason, message, recorded_at)
+                       VALUES (?, ?, ?, 'filter_rejected', ?, ?)""",
+                    (
+                        r["url"], r["speaker_key"], r["speech_date"],
+                        f"{filt.reason} (words={filt.word_count}, "
+                        f"link_density={filt.link_density:.2f})",
+                        dt.datetime.now(dt.timezone.utc).isoformat(),
+                    ),
+                )
             scores_dropped += 1
+
+        # Pass 4: backfill skip records for speeches that have a body but no
+        # score — these were excluded by the rubric in some prior run, but
+        # the rationale wasn't preserved. Mark them generically so they
+        # surface on the dashboard for transparency. Filter-rejected ones
+        # take precedence (recorded above in Pass 3).
+        skips_backfilled = 0
+        rows = conn.execute(
+            """SELECT s.url, s.speaker_key, s.speech_date, s.body
+               FROM speeches s
+               LEFT JOIN speech_scores sc ON sc.speech_url = s.url
+               LEFT JOIN processing_skips ps ON ps.url = s.url
+               WHERE s.doc_type = 'speech'
+                 AND sc.speech_url IS NULL
+                 AND ps.url IS NULL"""
+        ).fetchall()
+        for r in rows:
+            filt = speech_filter.evaluate(r["body"], doc_type="speech")
+            reason = "filter_rejected" if not filt.passes else "rubric_excluded"
+            message = (
+                f"{filt.reason} (words={filt.word_count})"
+                if not filt.passes
+                else "previously excluded; original rationale not preserved"
+            )
+            click.echo(
+                f"{'[dry-run] ' if dry_run else ''}backfill skip: "
+                f"{r['speaker_key']} {r['speech_date']} — {reason}"
+            )
+            if not dry_run:
+                conn.execute(
+                    """INSERT OR REPLACE INTO processing_skips
+                       (url, speaker_key, pub_date, reason, message, recorded_at)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (
+                        r["url"], r["speaker_key"], r["speech_date"],
+                        reason, message,
+                        dt.datetime.now(dt.timezone.utc).isoformat(),
+                    ),
+                )
+            skips_backfilled += 1
 
     summary = (
         f"{'[dry-run] ' if dry_run else ''}clean summary: "
         f"backfilled {backfilled} hash(es), "
         f"removed {url_dupes_removed} URL duplicate(s), "
-        f"dropped {scores_dropped} score row(s)."
+        f"dropped {scores_dropped} score row(s), "
+        f"backfilled {skips_backfilled} skip record(s)."
     )
     click.echo(summary)
 
