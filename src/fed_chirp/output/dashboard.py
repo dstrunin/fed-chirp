@@ -141,7 +141,7 @@ def _skips_section(speakers: list[Speaker], skips: list[ProcessingSkip]) -> str:
         )
     return f"""
     <section>
-      <h2>Speeches not scored</h2>
+      <h2 id="skips">Speeches not scored</h2>
       <p class="muted">
         Pieces of content the pipeline saw but did not score, in the trailing
         90 days. Listed for transparency: each speaker's hawk/dove mean is
@@ -181,7 +181,7 @@ def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
         )
     return f"""
     <section>
-      <h2>Coverage health</h2>
+      <h2 id="health">Coverage health</h2>
       <p class="muted">
         Speakers whose latest stored speech is more than 60 days old. Could
         mean the scraper broke or just that the speaker hasn't published a
@@ -1143,6 +1143,59 @@ _PAGE = """<!doctype html>
      .scroll-x wrapper is a no-op outside the mobile breakpoint. */
   div.scroll-x {{ overflow-x: visible; }}
 
+  /* Sticky in-page nav. The <details> wrapper is `open` server-side so
+     it works without JS; on desktop the <summary> is hidden and the
+     list is always shown. On mobile the @media query reveals <summary>
+     and lets the user collapse/expand. */
+  .page-nav {{
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: saturate(150%) blur(6px);
+    -webkit-backdrop-filter: saturate(150%) blur(6px);
+    border-bottom: 1px solid #eee;
+    margin: 0 -1rem 1.5rem;
+    padding: 0;
+  }}
+  .page-nav details {{ margin: 0; }}
+  .page-nav summary {{
+    display: none;  /* hidden on desktop; shown by @media at <=640px */
+    cursor: pointer;
+    list-style: none;
+    padding: 0.55rem 1rem;
+    font-size: 0.92rem;
+    color: #555;
+    user-select: none;
+  }}
+  .page-nav summary::-webkit-details-marker {{ display: none; }}
+  .page-nav summary::after {{ content: " ▾"; color: #999; }}
+  .page-nav details[open] summary::after {{ content: " ▴"; }}
+  .page-nav-list {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.55rem 1rem;
+    font-size: 0.9rem;
+  }}
+  .page-nav-list li {{ margin: 0; }}
+  .page-nav-list a {{
+    color: #555;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }}
+  .page-nav-list a:hover {{
+    color: #1f6feb;
+    border-bottom-color: #1f6feb;
+  }}
+
+  /* Anchored scrolls land below the sticky bar instead of under it.
+     ~52px matches the desktop nav height + a small breathing margin. */
+  h2 {{ scroll-margin-top: 64px; }}
+
   @media (max-width: 640px) {{
     body {{ margin: 1rem auto; padding: 0 0.6rem; }}
     h1 {{ font-size: 1.5rem; }}
@@ -1209,6 +1262,21 @@ _PAGE = """<!doctype html>
 
     /* Rates table values can wrap onto a second line on a narrow screen. */
     table.rates-table td {{ font-size: 0.92rem; }}
+
+    /* Sticky nav collapses into a single-row "Sections ▾" expandable. */
+    .page-nav {{ margin-left: -0.6rem; margin-right: -0.6rem; }}
+    .page-nav summary {{ display: block; padding: 0.5rem 0.6rem; }}
+    .page-nav details:not([open]) .page-nav-list {{ display: none; }}
+    .page-nav details[open] .page-nav-list {{
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.2rem 0.6rem 0.6rem;
+      border-top: 1px solid #eee;
+    }}
+    .page-nav-list a {{ padding: 0.3rem 0; display: inline-block; }}
+
+    /* Anchored scrolls: sticky nav is shorter on mobile when collapsed. */
+    h2 {{ scroll-margin-top: 52px; }}
   }}
 </style>
 </head>
@@ -1229,11 +1297,27 @@ _PAGE = """<!doctype html>
   when a speaker's score drifts meaningfully from their 90-day baseline.
 </p>
 
-<h2>FOMC pulse</h2>
+<nav class="page-nav" aria-label="Sections">
+  <details class="page-nav-collapse" open>
+    <summary>Sections</summary>
+    <ul class="page-nav-list">
+      <li><a href="#fomc-pulse">FOMC pulse</a></li>
+      <li><a href="#reactions">Reactions</a></li>
+      <li><a href="#market-implied">Market path</a></li>
+      <li><a href="#divergence">Divergence</a></li>
+      <li><a href="#speakers">Speakers</a></li>
+      <li><a href="#recent">Recent</a></li>
+      <li><a href="#skips">Not scored</a></li>
+      <li><a href="#health">Coverage</a></li>
+    </ul>
+  </details>
+</nav>
+
+<h2 id="fomc-pulse">FOMC pulse</h2>
 {meetings_html}
 {fomc_html}
 
-<h2>FOMC market reaction</h2>
+<h2 id="reactions">FOMC market reaction</h2>
 <p class="muted">
   S&amp;P (ES=F) and Nasdaq (NQ=F) intraday moves around each FOMC meeting.
   <strong>Statement</strong> = 2:00pm → 2:30pm ET (statement → presser);
@@ -1243,13 +1327,13 @@ _PAGE = """<!doctype html>
 </p>
 {reactions_html}
 
-<h2>Market-implied path</h2>
+<h2 id="market-implied">Market-implied path</h2>
 {futures_html}
 
-<h2>Committee divergence</h2>
+<h2 id="divergence">Committee divergence</h2>
 {divergence_html}
 
-<h2>Governors and presidents</h2>
+<h2 id="speakers">Governors and presidents</h2>
 <p class="meta">
   Each row is one Federal Reserve speaker. Speeches by the seven
   <strong>Board governors</strong> are pulled from their per-speaker RSS feeds on
@@ -1271,7 +1355,7 @@ _PAGE = """<!doctype html>
   <tbody>{speakers_html}</tbody>
 </table>
 
-<h2>Recent speeches</h2>
+<h2 id="recent">Recent speeches</h2>
 {recent_html}
 
 {skips_html}
