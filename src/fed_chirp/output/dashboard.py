@@ -132,11 +132,11 @@ def _skips_section(speakers: list[Speaker], skips: list[ProcessingSkip]) -> str:
         msg = html.escape(s.message[:240]) if s.message else ""
         rows.append(
             f"""<tr>
-              <td>{date_str}</td>
-              <td>{html.escape(speaker_name)}</td>
-              <td>{html.escape(reason_label)}</td>
-              <td class="muted">{msg}</td>
-              <td><a href="{html.escape(s.url)}" rel="noopener">link</a></td>
+              <td data-label="Date">{date_str}</td>
+              <td data-label="Speaker">{html.escape(speaker_name)}</td>
+              <td data-label="Reason">{html.escape(reason_label)}</td>
+              <td class="muted" data-label="Note">{msg}</td>
+              <td data-label="URL"><a href="{html.escape(s.url)}" rel="noopener">link</a></td>
             </tr>"""
         )
     return f"""
@@ -148,7 +148,7 @@ def _skips_section(speakers: list[Speaker], skips: list[ProcessingSkip]) -> str:
         computed only from items that DO have a score, so it's worth knowing
         what was deliberately left out.
       </p>
-      <table class="recent">
+      <table class="recent cards">
         <thead>
           <tr>
             <th>Date</th><th>Speaker</th><th>Reason</th>
@@ -173,10 +173,10 @@ def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
             silent_str = f"{s.days_silent} days"
         rows.append(
             f"""<tr>
-              <td>{html.escape(s.speaker.name)}</td>
-              <td class="region">{html.escape(s.speaker.region)}</td>
-              <td>{last_str}</td>
-              <td class="muted">{silent_str}</td>
+              <td data-label="Speaker">{html.escape(s.speaker.name)}</td>
+              <td class="region" data-label="Region">{html.escape(s.speaker.region)}</td>
+              <td data-label="Last speech">{last_str}</td>
+              <td class="muted" data-label="Silent for">{silent_str}</td>
             </tr>"""
         )
     return f"""
@@ -188,7 +188,7 @@ def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
         transcript-archived speech in a while (TV/podcast appearances are
         intentionally excluded).
       </p>
-      <table class="recent">
+      <table class="recent cards">
         <thead>
           <tr><th>Speaker</th><th>Region</th><th>Last speech</th><th>Silent for</th></tr>
         </thead>
@@ -201,12 +201,12 @@ def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
     if not scores:
         return f"""
         <tr>
-          <td class="name">{html.escape(speaker.name)}</td>
-          <td class="region">{html.escape(speaker.region)}</td>
-          <td class="role">{html.escape(speaker.role)}</td>
-          <td class="muted">no speeches scored yet</td>
-          <td></td>
-          <td></td>
+          <td class="name" data-label="Speaker">{html.escape(speaker.name)}</td>
+          <td class="region" data-label="Region">{html.escape(speaker.region)}</td>
+          <td class="role" data-label="Role">{html.escape(speaker.role)}</td>
+          <td class="muted" data-label="90d mean">no speeches scored yet</td>
+          <td data-label="Last 30 speeches"></td>
+          <td data-label="Most recent"></td>
         </tr>"""
 
     today = dt.date.today()
@@ -224,12 +224,12 @@ def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
 
     return f"""
         <tr>
-          <td class="name">{html.escape(speaker.name)}</td>
-          <td class="region">{html.escape(speaker.region)}</td>
-          <td class="role">{html.escape(speaker.role)}</td>
-          <td class="score {avg_class}">{avg_str}<span class="muted"> (90d, n={len(window)})</span></td>
-          <td class="spark">{spark}</td>
-          <td class="last">
+          <td class="name" data-label="Speaker">{html.escape(speaker.name)}</td>
+          <td class="region" data-label="Region">{html.escape(speaker.region)}</td>
+          <td class="role" data-label="Role">{html.escape(speaker.role)}</td>
+          <td class="score {avg_class}" data-label="90d mean">{avg_str}<span class="muted"> (90d, n={len(window)})</span></td>
+          <td class="spark" data-label="Last 30 speeches">{spark}</td>
+          <td class="last" data-label="Most recent">
             <span class="score {last_class}">{last.score:+.2f}</span>
             <span class="muted">{last.speech_date.isoformat()} ({n_total} total)</span>
           </td>
@@ -411,13 +411,13 @@ def _fomc_meetings_section(meetings: list[_Meeting]) -> str:
 
         rows.append(
             f"""<tr>
-              <td>{m.meeting_date.isoformat()}</td>
-              <td>{_cell(m.statement)}</td>
-              <td>{_cell(m.presser)}</td>
-              <td>{combined_html}</td>
-              <td>{drift_html}</td>
-              <td>{delta_html}</td>
-              <td>{mins_html}</td>
+              <td data-label="Meeting">{m.meeting_date.isoformat()}</td>
+              <td data-label="Statement">{_cell(m.statement)}</td>
+              <td data-label="Presser">{_cell(m.presser)}</td>
+              <td data-label="Combined">{combined_html}</td>
+              <td data-label="Drift (P−S)">{drift_html}</td>
+              <td data-label="Δ vs prior meeting">{delta_html}</td>
+              <td data-label="Minutes">{mins_html}</td>
             </tr>"""
         )
 
@@ -430,7 +430,7 @@ def _fomc_meetings_section(meetings: list[_Meeting]) -> str:
     return f"""
         <h3>Per-meeting combined view</h3>
         {spark_html}
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr>
             <th>Meeting</th>
             <th>Statement</th>
@@ -488,16 +488,16 @@ def _fomc_pulse(fomc_scores: list[StoredScore]) -> str:
 
             rows.append(
                 f"""<tr>
-                  <td>{s.speech_date.isoformat()}</td>
-                  <td class="score {cls}">{s.score:+.2f}</td>
-                  <td>{html.escape(s.label)}</td>
-                  <td>{delta_html}</td>
-                  <td><a href="{html.escape(s.speech_url)}" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">{s.speech_date.isoformat()}</td>
+                  <td class="score {cls}" data-label="Score">{s.score:+.2f}</td>
+                  <td data-label="Label">{html.escape(s.label)}</td>
+                  <td data-label="Δ vs prior">{delta_html}</td>
+                  <td data-label="URL"><a href="{html.escape(s.speech_url)}" target="_blank" rel="noopener">link</a></td>
                 </tr>{notes_html}"""
             )
         sections.append(f"""
         <h3>{html.escape(doc_type_label(doc_type))}</h3>
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr><th>Date</th><th>Score</th><th>Label</th><th>Δ vs prior</th><th>URL</th></tr></thead>
           <tbody>{"".join(rows)}</tbody>
         </table>""")
@@ -568,6 +568,7 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
     body = "\n".join(rows)
     ticker_th = "".join(f"<th>{html.escape(label)}</th>" for _, label in _REACTION_TICKERS)
     return f"""
+    <div class="scroll-x">
     <table class="reactions">
       <thead>
         <tr>
@@ -580,6 +581,7 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
       </thead>
       <tbody>{body}</tbody>
     </table>
+    </div>
     """
 
 
@@ -691,6 +693,7 @@ def _market_implied_section(
                 </tr>"""
             )
         per_meeting_table = f"""
+            <div class="scroll-x">
             <table class="fomc">
               <thead><tr>
                 <th>Meeting</th>
@@ -699,7 +702,8 @@ def _market_implied_section(
                 {header_cells}
               </tr></thead>
               <tbody>{''.join(body_rows)}</tbody>
-            </table>"""
+            </table>
+            </div>"""
     else:
         per_meeting_table = (
             '<p class="muted">No upcoming meetings within the chain window.</p>'
@@ -943,16 +947,16 @@ def _recent_table(speakers: list[Speaker], scores: list[StoredScore]) -> str:
         rationale = html.escape(s.rationale)
         rows.append(
             f"""<tr>
-              <td>{s.speech_date.isoformat()}</td>
-              <td>{html.escape(speaker_name)}</td>
-              <td class="score {cls}">{s.score:+.2f}</td>
-              <td>{html.escape(s.label)}</td>
-              <td><a href="{html.escape(s.speech_url)}" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">{rationale}</td>
+              <td data-label="Date">{s.speech_date.isoformat()}</td>
+              <td data-label="Speaker">{html.escape(speaker_name)}</td>
+              <td class="score {cls}" data-label="Score">{s.score:+.2f}</td>
+              <td data-label="Label">{html.escape(s.label)}</td>
+              <td data-label="URL"><a href="{html.escape(s.speech_url)}" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">{rationale}</td>
             </tr>"""
         )
     return f"""
-    <table class="recent">
+    <table class="recent cards">
       <thead>
         <tr><th>Date</th><th>Speaker</th><th>Score</th><th>Label</th><th>URL</th><th>Rationale</th></tr>
       </thead>
@@ -1074,6 +1078,70 @@ _PAGE = """<!doctype html>
   .about {{ color: #555; font-size: 0.92rem; line-height: 1.5;
            margin: 0 0 1.5rem; max-width: 760px; }}
   .about strong {{ color: #222; }}
+
+  /* Default: tables that AREN'T given .cards keep desktop layout. The
+     .scroll-x wrapper is a no-op outside the mobile breakpoint. */
+  div.scroll-x {{ overflow-x: visible; }}
+
+  @media (max-width: 640px) {{
+    body {{ margin: 1rem auto; padding: 0 0.6rem; }}
+    h1 {{ font-size: 1.5rem; }}
+    h2 {{ font-size: 1.15rem; margin-top: 1.4rem; }}
+    h3, h4 {{ font-size: 0.95rem; }}
+    .meta {{ font-size: 0.85rem; }}
+
+    /* Card layout for tables tagged with .cards: rows become stacked
+       label/value blocks. The desktop <thead> is hidden; each <td>
+       renders its data-label attr as an inline tag. */
+    table.cards {{ border: 0; }}
+    table.cards thead {{ display: none; }}
+    table.cards tbody, table.cards tr, table.cards td {{ display: block; }}
+    table.cards tr {{ border: 1px solid #eee; border-radius: 6px;
+                      padding: 0.5rem 0.7rem; margin: 0.55rem 0; }}
+    table.cards td {{ border: none; padding: 0.22rem 0;
+                     font-size: 0.95rem; }}
+    table.cards td::before {{
+      content: attr(data-label) ":";
+      display: inline-block;
+      min-width: 110px;
+      color: #888;
+      font-size: 0.85em;
+      font-weight: 500;
+      margin-right: 0.4rem;
+    }}
+    /* Long rationale wraps onto its own line under the label */
+    table.cards td.rationale {{ max-width: none; }}
+    table.cards td.rationale::before {{ display: block; margin-bottom: 0.2rem; }}
+    /* Sparkline cell: drop fixed width and label so the SVG fills the row */
+    table.cards td.spark {{ width: auto; }}
+    table.cards td.spark::before {{ content: ""; margin: 0; min-width: 0; }}
+    table.cards td.spark svg {{ width: 100%; height: auto; max-height: 36px; }}
+
+    /* The diff-notes inline `<tr class="notes-row"><td colspan="5">…</td></tr>`
+       lives inside a card; suppress the data-label tag and let it span full width. */
+    table.cards tr.notes-row {{ border: 1px solid #eee; padding: 0.4rem 0.6rem; }}
+    table.cards tr.notes-row td {{ padding: 0; }}
+    table.cards tr.notes-row td::before {{ content: ""; margin: 0; min-width: 0; }}
+
+    /* Horizontal-scroll wrapper for matrix-shaped tables that don't fit a card view. */
+    div.scroll-x {{ overflow-x: auto; -webkit-overflow-scrolling: touch;
+                    margin: 0 -0.6rem 1rem; padding: 0 0.6rem; }}
+    div.scroll-x table {{ min-width: 540px; }}
+
+    /* Camps: 3 fixed-width columns become 3 stacked blocks. */
+    table.camps tr {{ display: block; }}
+    table.camps td.camp-col {{ display: block; width: auto;
+                              padding: 0.5rem 0;
+                              border-bottom: 1px solid #eee; }}
+    table.camps td.camp-col:last-child {{ border-bottom: none; }}
+
+    /* Gap-panel: let labels sit above their values rather than inline. */
+    .gap-label {{ min-width: 0; display: block; }}
+    .gap-panel {{ padding: 0.6rem 0.8rem; }}
+
+    /* Rates table values can wrap onto a second line on a narrow screen. */
+    table.rates-table td {{ font-size: 0.92rem; }}
+  }}
 </style>
 </head>
 <body>
@@ -1129,7 +1197,7 @@ _PAGE = """<!doctype html>
   publish limited speech archives, so a thin row usually reflects what that bank posts
   publicly rather than how often the president actually speaks.
 </p>
-<table>
+<table class="cards">
   <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
              <th>Last 30 speeches</th><th>Most recent</th></tr></thead>
   <tbody>{speakers_html}</tbody>

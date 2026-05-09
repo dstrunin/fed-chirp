@@ -70,11 +70,75 @@
   .about { color: #555; font-size: 0.92rem; line-height: 1.5;
            margin: 0 0 1.5rem; max-width: 760px; }
   .about strong { color: #222; }
+
+  /* Default: tables that AREN'T given .cards keep desktop layout. The
+     .scroll-x wrapper is a no-op outside the mobile breakpoint. */
+  div.scroll-x { overflow-x: visible; }
+
+  @media (max-width: 640px) {
+    body { margin: 1rem auto; padding: 0 0.6rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.4rem; }
+    h3, h4 { font-size: 0.95rem; }
+    .meta { font-size: 0.85rem; }
+
+    /* Card layout for tables tagged with .cards: rows become stacked
+       label/value blocks. The desktop <thead> is hidden; each <td>
+       renders its data-label attr as an inline tag. */
+    table.cards { border: 0; }
+    table.cards thead { display: none; }
+    table.cards tbody, table.cards tr, table.cards td { display: block; }
+    table.cards tr { border: 1px solid #eee; border-radius: 6px;
+                      padding: 0.5rem 0.7rem; margin: 0.55rem 0; }
+    table.cards td { border: none; padding: 0.22rem 0;
+                     font-size: 0.95rem; }
+    table.cards td::before {
+      content: attr(data-label) ":";
+      display: inline-block;
+      min-width: 110px;
+      color: #888;
+      font-size: 0.85em;
+      font-weight: 500;
+      margin-right: 0.4rem;
+    }
+    /* Long rationale wraps onto its own line under the label */
+    table.cards td.rationale { max-width: none; }
+    table.cards td.rationale::before { display: block; margin-bottom: 0.2rem; }
+    /* Sparkline cell: drop fixed width and label so the SVG fills the row */
+    table.cards td.spark { width: auto; }
+    table.cards td.spark::before { content: ""; margin: 0; min-width: 0; }
+    table.cards td.spark svg { width: 100%; height: auto; max-height: 36px; }
+
+    /* The diff-notes inline `<tr class="notes-row"><td colspan="5">…</td></tr>`
+       lives inside a card; suppress the data-label tag and let it span full width. */
+    table.cards tr.notes-row { border: 1px solid #eee; padding: 0.4rem 0.6rem; }
+    table.cards tr.notes-row td { padding: 0; }
+    table.cards tr.notes-row td::before { content: ""; margin: 0; min-width: 0; }
+
+    /* Horizontal-scroll wrapper for matrix-shaped tables that don't fit a card view. */
+    div.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch;
+                    margin: 0 -0.6rem 1rem; padding: 0 0.6rem; }
+    div.scroll-x table { min-width: 540px; }
+
+    /* Camps: 3 fixed-width columns become 3 stacked blocks. */
+    table.camps tr { display: block; }
+    table.camps td.camp-col { display: block; width: auto;
+                              padding: 0.5rem 0;
+                              border-bottom: 1px solid #eee; }
+    table.camps td.camp-col:last-child { border-bottom: none; }
+
+    /* Gap-panel: let labels sit above their values rather than inline. */
+    .gap-label { min-width: 0; display: block; }
+    .gap-panel { padding: 0.6rem 0.8rem; }
+
+    /* Rates table values can wrap onto a second line on a narrow screen. */
+    table.rates-table td { font-size: 0.92rem; }
+  }
 </style>
 </head>
 <body>
 <h1>Fed Chirp <span class="beta-tag">beta</span></h1>
-<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T21:22:40+00:00">May 9, 2026, 9:22 PM UTC</time> &middot; 417 speeches scored</div>
+<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T22:17:50+00:00">May 9, 2026, 10:17 PM UTC</time> &middot; 417 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -93,7 +157,7 @@
 
         <h3>Per-meeting combined view</h3>
         <p class="meta">Combined-score trajectory (oldest → newest): <svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,24.3 74.7,17.0 145.3,17.0 216.0,17.3"/></svg></p>
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr>
             <th>Meeting</th>
             <th>Statement</th>
@@ -104,37 +168,37 @@
             <th>Minutes</th>
           </tr></thead>
           <tbody><tr>
-              <td>2026-04-29</td>
-              <td><span class="score neutral">-0.30</span></td>
-              <td><span class="score hawk">+0.50</span></td>
-              <td><span class="score neutral">+0.10</span></td>
-              <td><span class="score hawk">+0.80</span></td>
-              <td><span class="score neutral">-0.05</span></td>
-              <td><span class="muted">pending</span></td>
+              <td data-label="Meeting">2026-04-29</td>
+              <td data-label="Statement"><span class="score neutral">-0.30</span></td>
+              <td data-label="Presser"><span class="score hawk">+0.50</span></td>
+              <td data-label="Combined"><span class="score neutral">+0.10</span></td>
+              <td data-label="Drift (P−S)"><span class="score hawk">+0.80</span></td>
+              <td data-label="Δ vs prior meeting"><span class="score neutral">-0.05</span></td>
+              <td data-label="Minutes"><span class="muted">pending</span></td>
             </tr><tr>
-              <td>2026-03-18</td>
-              <td><span class="score neutral">+0.30</span></td>
-              <td><span class="score neutral">+0.00</span></td>
-              <td><span class="score neutral">+0.15</span></td>
-              <td><span class="score dove">-0.30</span></td>
-              <td><span class="score neutral">+0.00</span></td>
-              <td><span class="score neutral">+0.30</span><span class="muted"> (2026-04-08)</span></td>
+              <td data-label="Meeting">2026-03-18</td>
+              <td data-label="Statement"><span class="score neutral">+0.30</span></td>
+              <td data-label="Presser"><span class="score neutral">+0.00</span></td>
+              <td data-label="Combined"><span class="score neutral">+0.15</span></td>
+              <td data-label="Drift (P−S)"><span class="score dove">-0.30</span></td>
+              <td data-label="Δ vs prior meeting"><span class="score neutral">+0.00</span></td>
+              <td data-label="Minutes"><span class="score neutral">+0.30</span><span class="muted"> (2026-04-08)</span></td>
             </tr><tr>
-              <td>2026-01-28</td>
-              <td><span class="score neutral">+0.30</span></td>
-              <td><span class="score neutral">+0.00</span></td>
-              <td><span class="score neutral">+0.15</span></td>
-              <td><span class="score dove">-0.30</span></td>
-              <td><span class="score hawk">+1.05</span></td>
-              <td><span class="score hawk">+0.50</span><span class="muted"> (2026-02-18)</span></td>
+              <td data-label="Meeting">2026-01-28</td>
+              <td data-label="Statement"><span class="score neutral">+0.30</span></td>
+              <td data-label="Presser"><span class="score neutral">+0.00</span></td>
+              <td data-label="Combined"><span class="score neutral">+0.15</span></td>
+              <td data-label="Drift (P−S)"><span class="score dove">-0.30</span></td>
+              <td data-label="Δ vs prior meeting"><span class="score hawk">+1.05</span></td>
+              <td data-label="Minutes"><span class="score hawk">+0.50</span><span class="muted"> (2026-02-18)</span></td>
             </tr><tr>
-              <td>2025-12-10</td>
-              <td><span class="score dove">-1.00</span></td>
-              <td><span class="score dove">-0.80</span></td>
-              <td><span class="score dove">-0.90</span></td>
-              <td><span class="score neutral">+0.20</span></td>
-              <td><span class="muted">— (first)</span></td>
-              <td><span class="score dove">-0.50</span><span class="muted"> (2025-12-30)</span></td>
+              <td data-label="Meeting">2025-12-10</td>
+              <td data-label="Statement"><span class="score dove">-1.00</span></td>
+              <td data-label="Presser"><span class="score dove">-0.80</span></td>
+              <td data-label="Combined"><span class="score dove">-0.90</span></td>
+              <td data-label="Drift (P−S)"><span class="score neutral">+0.20</span></td>
+              <td data-label="Δ vs prior meeting"><span class="muted">— (first)</span></td>
+              <td data-label="Minutes"><span class="score dove">-0.50</span><span class="muted"> (2025-12-30)</span></td>
             </tr></tbody>
         </table>
         <p class="meta">
@@ -146,92 +210,92 @@
         </p>
 
         <h3>FOMC Statement</h3>
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr><th>Date</th><th>Score</th><th>Label</th><th>Δ vs prior</th><th>URL</th></tr></thead>
           <tbody><tr>
-                  <td>2026-04-29</td>
-                  <td class="score neutral">-0.30</td>
-                  <td>neutral</td>
-                  <td><span class="score dove">-0.60</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-04-29</td>
+                  <td class="score neutral" data-label="Score">-0.30</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score dove">-0.60</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr class="notes-row"><td colspan="5"><details><summary>What changed vs prior statement</summary><ul class="diff-notes"><li><strong>&#x27;somewhat elevated&#x27; → &#x27;elevated, in part reflecting the recent increase in global energy prices&#x27;</strong> on inflation: stronger language with a supply-side driver cited — <em>modestly hawkish</em>.</li><li><strong>Middle East framing shifts</strong> from &#x27;implications...are uncertain&#x27; to &#x27;contributing to a high level of uncertainty&#x27;: more direct acknowledgment of an active upside inflation risk — <em>modestly hawkish</em>.</li><li><strong>Three new dissents</strong> (Hammack, Kashkari, Logan) opposing inclusion of an &#x27;easing bias&#x27; in the statement: signals meaningful internal pushback against any dovish tilt in the reaction function — <em>hawkish committee signal</em>.</li><li><strong>Miran dissent persists</strong> for a second consecutive meeting preferring a 25bp cut, while three hawks push back on easing-bias language: committee is pulled in both directions, but the hawkish bloc is larger — <em>internal tension, net hawkish lean</em>.</li></ul></details></td></tr><tr>
-                  <td>2026-03-18</td>
-                  <td class="score neutral">+0.30</td>
-                  <td>neutral</td>
-                  <td><span class="score neutral">+0.00</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260318a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-03-18</td>
+                  <td class="score neutral" data-label="Score">+0.30</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score neutral">+0.00</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260318a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr class="notes-row"><td colspan="5"><details><summary>What changed vs prior statement</summary><ul class="diff-notes"><li><strong>&#x27;shown some signs of stabilization&#x27; → &#x27;been little changed in recent months&#x27;</strong> on unemployment: slightly more neutral/stable characterization — <em>no meaningful change in stance</em>.</li><li><strong>New sentence added</strong>: &#x27;The implications of developments in the Middle East for the U.S. economy are uncertain&#x27; — flags a specific geopolitical risk but does not tilt the balance clearly; <em>marginally dovish</em> as it adds to uncertainty framing.</li><li><strong>Waller flips from dissenter to majority</strong>: previously dissented for a cut alongside Miran; now votes with the majority, leaving Miran as the sole dissenter — <em>modestly hawkish shift</em> in committee alignment, reducing cut pressure.</li><li><strong>Rate decision and all reaction-function language unchanged</strong>: hold at 3-1/2 to 3-3/4 percent, &#x27;carefully assess&#x27; phrasing retained — <em>no change in policy stance</em>.</li></ul></details></td></tr><tr>
-                  <td>2026-01-28</td>
-                  <td class="score neutral">+0.30</td>
-                  <td>neutral</td>
-                  <td><span class="score hawk">+1.30</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260128a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-01-28</td>
+                  <td class="score neutral" data-label="Score">+0.30</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score hawk">+1.30</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260128a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr class="notes-row"><td colspan="5"><details><summary>What changed vs prior statement</summary><ul class="diff-notes"><li><strong>&#x27;moderate pace&#x27; → &#x27;solid pace&#x27;</strong> on economic activity: upgrade in growth assessment signals more confidence in the expansion — <em>modestly hawkish</em>.</li><li><strong>Rate decision: cut → hold</strong> (maintained at 3-1/2 to 3-3/4%): pausing the easing cycle after December&#x27;s cut — <em>hawkish shift</em>.</li><li><strong>Dropped &#x27;downside risks to employment rose in recent months&#x27;</strong> and removal of &#x27;shift in the balance of risks&#x27; language: Committee no longer flagging labor-market deterioration as a catalyst for cuts — <em>hawkish</em>.</li><li><strong>Dissent pattern reversed</strong>: prior dissents split between a larger cut (Miran) and no cut (Goolsbee, Schmid); now Miran and Waller both dissent <em>for a cut</em>, signaling dovish minority pressure within a hold decision — <em>committee tilted slightly more cautious on easing</em>.</li><li><strong>&#x27;Job gains have slowed this year&#x27; → &#x27;Job gains have remained low&#x27;</strong> and added &#x27;some signs of stabilization&#x27; on unemployment: softer but stabilizing labor framing, removing the deterioration narrative — <em>neutral to slightly hawkish</em>.</li></ul></details></td></tr><tr>
-                  <td>2025-12-10</td>
-                  <td class="score dove">-1.00</td>
-                  <td>dovish</td>
-                  <td><span class="muted">— (first)</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2025-12-10</td>
+                  <td class="score dove" data-label="Score">-1.00</td>
+                  <td data-label="Label">dovish</td>
+                  <td data-label="Δ vs prior"><span class="muted">— (first)</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr></tbody>
         </table>
 
         <h3>Press Conference</h3>
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr><th>Date</th><th>Score</th><th>Label</th><th>Δ vs prior</th><th>URL</th></tr></thead>
           <tbody><tr>
-                  <td>2026-04-29</td>
-                  <td class="score hawk">+0.50</td>
-                  <td>hawkish</td>
-                  <td><span class="score hawk">+0.50</span></td>
-                  <td><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260429.pdf" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-04-29</td>
+                  <td class="score hawk" data-label="Score">+0.50</td>
+                  <td data-label="Label">hawkish</td>
+                  <td data-label="Δ vs prior"><span class="score hawk">+0.50</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260429.pdf" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2026-03-18</td>
-                  <td class="score neutral">+0.00</td>
-                  <td>neutral</td>
-                  <td><span class="score neutral">+0.00</span></td>
-                  <td><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260318.pdf" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-03-18</td>
+                  <td class="score neutral" data-label="Score">+0.00</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score neutral">+0.00</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260318.pdf" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2026-01-28</td>
-                  <td class="score neutral">+0.00</td>
-                  <td>neutral</td>
-                  <td><span class="score hawk">+0.80</span></td>
-                  <td><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260128.pdf" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-01-28</td>
+                  <td class="score neutral" data-label="Score">+0.00</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score hawk">+0.80</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260128.pdf" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2025-12-10</td>
-                  <td class="score dove">-0.80</td>
-                  <td>dovish</td>
-                  <td><span class="muted">— (first)</span></td>
-                  <td><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20251210.pdf" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2025-12-10</td>
+                  <td class="score dove" data-label="Score">-0.80</td>
+                  <td data-label="Label">dovish</td>
+                  <td data-label="Δ vs prior"><span class="muted">— (first)</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20251210.pdf" target="_blank" rel="noopener">link</a></td>
                 </tr></tbody>
         </table>
 
         <h3>FOMC Minutes</h3>
-        <table class="fomc">
+        <table class="fomc cards">
           <thead><tr><th>Date</th><th>Score</th><th>Label</th><th>Δ vs prior</th><th>URL</th></tr></thead>
           <tbody><tr>
-                  <td>2026-04-08</td>
-                  <td class="score neutral">+0.30</td>
-                  <td>neutral</td>
-                  <td><span class="score neutral">-0.20</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260408a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-04-08</td>
+                  <td class="score neutral" data-label="Score">+0.30</td>
+                  <td data-label="Label">neutral</td>
+                  <td data-label="Δ vs prior"><span class="score neutral">-0.20</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260408a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2026-02-18</td>
-                  <td class="score hawk">+0.50</td>
-                  <td>hawkish</td>
-                  <td><span class="score hawk">+1.00</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260218a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2026-02-18</td>
+                  <td class="score hawk" data-label="Score">+0.50</td>
+                  <td data-label="Label">hawkish</td>
+                  <td data-label="Δ vs prior"><span class="score hawk">+1.00</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260218a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2025-12-30</td>
-                  <td class="score dove">-0.50</td>
-                  <td>dovish</td>
-                  <td><span class="score neutral">+0.00</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251230a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2025-12-30</td>
+                  <td class="score dove" data-label="Score">-0.50</td>
+                  <td data-label="Label">dovish</td>
+                  <td data-label="Δ vs prior"><span class="score neutral">+0.00</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251230a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr><tr>
-                  <td>2025-11-19</td>
-                  <td class="score dove">-0.50</td>
-                  <td>dovish</td>
-                  <td><span class="muted">— (first)</span></td>
-                  <td><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251119a.htm" target="_blank" rel="noopener">link</a></td>
+                  <td data-label="Date">2025-11-19</td>
+                  <td class="score dove" data-label="Score">-0.50</td>
+                  <td data-label="Label">dovish</td>
+                  <td data-label="Δ vs prior"><span class="muted">— (first)</span></td>
+                  <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20251119a.htm" target="_blank" rel="noopener">link</a></td>
                 </tr></tbody>
         </table>
 
@@ -244,6 +308,7 @@
   σ = annualized realized volatility (%).
 </p>
 
+    <div class="scroll-x">
     <table class="reactions">
       <thead>
         <tr>
@@ -259,6 +324,7 @@
 <tr><td class="meeting">2026-01-28</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="down">-0.16%</span><span class="vol">σ27.2</span></td><td><span class="down">-0.64%</span><span class="vol">σ40.0</span></td></tr>
 <tr><td class="meeting">2025-12-10</td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="muted">—</span></td><td><span class="muted">—</span></td><td class="divider"><span class="up">+0.16%</span><span class="vol">σ16.6</span></td><td><span class="down">-0.42%</span><span class="vol">σ26.8</span></td></tr></tbody>
     </table>
+    </div>
     
 
 <h2>Market-implied path</h2>
@@ -286,6 +352,7 @@
             </div>
         <h4>Next FOMC meetings (implied move probabilities)</h4>
         
+            <div class="scroll-x">
             <table class="fomc">
               <thead><tr>
                 <th>Meeting</th>
@@ -325,6 +392,7 @@
                   <td class="bucket-cell bucket-zero">5%</td><td class="bucket-cell bucket-strong">95%</td><td class="bucket-cell bucket-zero">0%</td>
                 </tr></tbody>
             </table>
+            </div>
         <p class="meta">
           Probabilities are computed from settlement-implied per-meeting rate
           changes via the standard CME-FedWatch step-path methodology (linear
@@ -384,233 +452,233 @@
   publish limited speech archives, so a thin row usually reflects what that bank posts
   publicly rather than how often the president actually speaks.
 </p>
-<table>
+<table class="cards">
   <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
              <th>Last 30 speeches</th><th>Most recent</th></tr></thead>
   <tbody>
         <tr>
-          <td class="name">Jerome H. Powell</td>
-          <td class="region">Board</td>
-          <td class="role">Chair</td>
-          <td class="score neutral">—<span class="muted"> (90d, n=0)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 27.6,15.9 51.1,15.9 74.7,18.0 98.2,18.0 121.8,18.0 145.3,18.0 168.9,18.0 192.4,22.9 216.0,18.0"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Jerome H. Powell</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Chair</td>
+          <td class="score neutral" data-label="90d mean">—<span class="muted"> (90d, n=0)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 27.6,15.9 51.1,15.9 74.7,18.0 98.2,18.0 121.8,18.0 145.3,18.0 168.9,18.0 192.4,22.9 216.0,18.0"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score neutral">+0.00</span>
             <span class="muted">2025-12-01 (10 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Philip N. Jefferson</td>
-          <td class="region">Board</td>
-          <td class="role">Vice Chair</td>
-          <td class="score neutral">+0.15<span class="muted"> (90d, n=2)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,15.9 19.1,18.0 34.3,15.9 49.4,18.0 64.6,18.0 79.7,18.0 94.9,23.6 110.0,21.5 125.1,21.5 140.3,21.5 155.4,18.0 170.6,21.5 185.7,18.0 200.9,18.0 216.0,15.9"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Philip N. Jefferson</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Vice Chair</td>
+          <td class="score neutral" data-label="90d mean">+0.15<span class="muted"> (90d, n=2)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,15.9 19.1,18.0 34.3,15.9 49.4,18.0 64.6,18.0 79.7,18.0 94.9,23.6 110.0,21.5 125.1,21.5 140.3,21.5 155.4,18.0 170.6,21.5 185.7,18.0 200.9,18.0 216.0,15.9"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score neutral">+0.30</span>
             <span class="muted">2026-04-07 (15 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Michelle W. Bowman</td>
-          <td class="region">Board</td>
-          <td class="role">Vice Chair for Supervision</td>
-          <td class="score neutral">—<span class="muted"> (90d, n=0)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 46.4,18.0 88.8,18.0 131.2,18.0 173.6,26.4 216.0,25.0"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Michelle W. Bowman</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Vice Chair for Supervision</td>
+          <td class="score neutral" data-label="90d mean">—<span class="muted"> (90d, n=0)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 46.4,18.0 88.8,18.0 131.2,18.0 173.6,26.4 216.0,25.0"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score dove">-1.00</span>
             <span class="muted">2026-01-30 (6 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Michael S. Barr</td>
-          <td class="region">Board</td>
-          <td class="role">Governor</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=3)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 21.7,18.0 39.3,15.9 57.0,18.0 74.7,18.0 92.3,18.0 110.0,18.0 127.7,18.0 145.3,18.0 163.0,18.0 180.7,14.5 198.3,14.5 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Michael S. Barr</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Governor</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=3)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 21.7,18.0 39.3,15.9 57.0,18.0 74.7,18.0 92.3,18.0 110.0,18.0 127.7,18.0 145.3,18.0 163.0,18.0 180.7,14.5 198.3,14.5 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-03-26 (13 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Lisa D. Cook</td>
-          <td class="region">Board</td>
-          <td class="role">Governor</td>
-          <td class="score neutral">—<span class="muted"> (90d, n=0)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,23.6 23.3,15.9 42.5,18.0 61.8,18.0 81.1,18.0 100.4,15.9 119.6,18.0 138.9,18.0 158.2,18.0 177.5,21.5 196.7,18.0 216.0,12.4"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Lisa D. Cook</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Governor</td>
+          <td class="score neutral" data-label="90d mean">—<span class="muted"> (90d, n=0)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,23.6 23.3,15.9 42.5,18.0 61.8,18.0 81.1,18.0 100.4,15.9 119.6,18.0 138.9,18.0 158.2,18.0 177.5,21.5 196.7,18.0 216.0,12.4"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.80</span>
             <span class="muted">2026-02-04 (12 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Stephen I. Miran</td>
-          <td class="region">Board</td>
-          <td class="role">Governor</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,30.6 46.4,21.5 88.8,18.0 131.2,28.5 173.6,26.4 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Stephen I. Miran</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Governor</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,30.6 46.4,21.5 88.8,18.0 131.2,28.5 173.6,26.4 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-03-26 (6 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Christopher J. Waller</td>
-          <td class="region">Board</td>
-          <td class="role">Governor</td>
-          <td class="score neutral">-0.15<span class="muted"> (90d, n=2)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 23.3,30.6 42.5,28.5 61.8,18.0 81.1,30.6 100.4,18.0 119.6,18.0 138.9,25.0 158.2,18.0 177.5,28.5 196.7,23.6 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Christopher J. Waller</td>
+          <td class="region" data-label="Region">Board</td>
+          <td class="role" data-label="Role">Governor</td>
+          <td class="score neutral" data-label="90d mean">-0.15<span class="muted"> (90d, n=2)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 23.3,30.6 42.5,28.5 61.8,18.0 81.1,30.6 100.4,18.0 119.6,18.0 138.9,25.0 158.2,18.0 177.5,28.5 196.7,23.6 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-04-17 (12 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Raphael W. Bostic</td>
-          <td class="region">Atlanta</td>
-          <td class="role">President</td>
-          <td class="score neutral">—<span class="muted"> (90d, n=0)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,21.5 23.3,15.9 42.5,18.0 61.8,21.5 81.1,18.0 100.4,12.4 119.6,18.0 138.9,18.0 158.2,25.0 177.5,18.0 196.7,9.6 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Raphael W. Bostic</td>
+          <td class="region" data-label="Region">Atlanta</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score neutral" data-label="90d mean">—<span class="muted"> (90d, n=0)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,21.5 23.3,15.9 42.5,18.0 61.8,21.5 81.1,18.0 100.4,12.4 119.6,18.0 138.9,18.0 158.2,25.0 177.5,18.0 196.7,9.6 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-02-05 (12 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Thomas I. Barkin</td>
-          <td class="region">Richmond</td>
-          <td class="role">President</td>
-          <td class="score neutral">+0.00<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,11.0 11.3,12.4 18.6,18.0 25.9,11.0 33.2,14.5 40.6,14.5 47.9,14.5 55.2,14.5 62.5,18.0 69.8,15.9 77.1,12.4 84.4,12.4 91.7,12.4 99.0,15.9 106.3,15.9 113.7,18.0 121.0,18.0 128.3,15.9 135.6,12.4 142.9,15.9 150.2,18.0 157.5,18.0 164.8,18.0 172.1,16.6 179.4,15.9 186.8,18.0 194.1,18.0 201.4,18.0 208.7,15.9 216.0,18.0"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Thomas I. Barkin</td>
+          <td class="region" data-label="Region">Richmond</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score neutral" data-label="90d mean">+0.00<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,11.0 11.3,12.4 18.6,18.0 25.9,11.0 33.2,14.5 40.6,14.5 47.9,14.5 55.2,14.5 62.5,18.0 69.8,15.9 77.1,12.4 84.4,12.4 91.7,12.4 99.0,15.9 106.3,15.9 113.7,18.0 121.0,18.0 128.3,15.9 135.6,12.4 142.9,15.9 150.2,18.0 157.5,18.0 164.8,18.0 172.1,16.6 179.4,15.9 186.8,18.0 194.1,18.0 201.4,18.0 208.7,15.9 216.0,18.0"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score neutral">+0.00</span>
             <span class="muted">2026-03-27 (101 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Susan M. Collins</td>
-          <td class="region">Boston</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.80<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,12.4 18.6,12.4 25.9,14.5 33.2,15.9 40.6,18.0 47.9,18.0 55.2,21.5 62.5,21.5 69.8,18.0 77.1,14.5 84.4,14.5 91.7,15.9 99.0,18.0 106.3,21.5 113.7,23.6 121.0,18.0 128.3,21.5 135.6,14.5 142.9,15.9 150.2,18.0 157.5,18.0 164.8,18.0 172.1,15.9 179.4,20.1 186.8,22.9 194.1,14.5 201.4,18.0 208.7,18.0 216.0,12.4"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Susan M. Collins</td>
+          <td class="region" data-label="Region">Boston</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.80<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,12.4 18.6,12.4 25.9,14.5 33.2,15.9 40.6,18.0 47.9,18.0 55.2,21.5 62.5,21.5 69.8,18.0 77.1,14.5 84.4,14.5 91.7,15.9 99.0,18.0 106.3,21.5 113.7,23.6 121.0,18.0 128.3,21.5 135.6,14.5 142.9,15.9 150.2,18.0 157.5,18.0 164.8,18.0 172.1,15.9 179.4,20.1 186.8,22.9 194.1,14.5 201.4,18.0 208.7,18.0 216.0,12.4"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.80</span>
             <span class="muted">2026-03-06 (38 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">John C. Williams</td>
-          <td class="region">New York</td>
-          <td class="role">President</td>
-          <td class="score neutral">-0.05<span class="muted"> (90d, n=4)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,18.0 18.6,23.6 25.9,18.0 33.2,18.0 40.6,21.5 47.9,18.0 55.2,18.0 62.5,16.6 69.8,18.0 77.1,15.9 84.4,18.0 91.7,15.9 99.0,18.0 106.3,18.0 113.7,18.0 121.0,15.9 128.3,15.9 135.6,18.0 142.9,20.1 150.2,18.0 157.5,18.0 164.8,18.0 172.1,25.0 179.4,21.5 186.8,21.5 194.1,21.5 201.4,15.9 208.7,18.0 216.0,18.0"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">John C. Williams</td>
+          <td class="region" data-label="Region">New York</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score neutral" data-label="90d mean">-0.05<span class="muted"> (90d, n=4)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,18.0 18.6,23.6 25.9,18.0 33.2,18.0 40.6,21.5 47.9,18.0 55.2,18.0 62.5,16.6 69.8,18.0 77.1,15.9 84.4,18.0 91.7,15.9 99.0,18.0 106.3,18.0 113.7,18.0 121.0,15.9 128.3,15.9 135.6,18.0 142.9,20.1 150.2,18.0 157.5,18.0 164.8,18.0 172.1,25.0 179.4,21.5 186.8,21.5 194.1,21.5 201.4,15.9 208.7,18.0 216.0,18.0"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score neutral">+0.00</span>
             <span class="muted">2026-05-04 (105 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Mary C. Daly</td>
-          <td class="region">San Francisco</td>
-          <td class="role">President</td>
-          <td class="score neutral">—<span class="muted"> (90d, n=0)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,21.5 34.3,18.0 64.6,18.0 94.9,18.0 125.1,18.0 155.4,21.5 185.7,23.6 216.0,18.0"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Mary C. Daly</td>
+          <td class="region" data-label="Region">San Francisco</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score neutral" data-label="90d mean">—<span class="muted"> (90d, n=0)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,21.5 34.3,18.0 64.6,18.0 94.9,18.0 125.1,18.0 155.4,21.5 185.7,23.6 216.0,18.0"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score neutral">+0.00</span>
             <span class="muted">2025-11-13 (8 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Austan D. Goolsbee</td>
-          <td class="region">Chicago</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,14.5 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Austan D. Goolsbee</td>
+          <td class="region" data-label="Region">Chicago</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,14.5 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-05-08 (1 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Beth M. Hammack</td>
-          <td class="region">Cleveland</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,15.9 34.3,14.5 64.6,18.0 94.9,18.0 125.1,18.0 155.4,12.4 185.7,18.0 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Beth M. Hammack</td>
+          <td class="region" data-label="Region">Cleveland</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,15.9 34.3,14.5 64.6,18.0 94.9,18.0 125.1,18.0 155.4,12.4 185.7,18.0 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-02-10 (8 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Alberto G. Musalem</td>
-          <td class="region">St. Louis</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 46.4,18.0 88.8,14.5 131.2,15.9 173.6,14.5 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Alberto G. Musalem</td>
+          <td class="region" data-label="Region">St. Louis</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 46.4,18.0 88.8,14.5 131.2,15.9 173.6,14.5 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-04-01 (6 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Anna Paulson</td>
-          <td class="region">Philadelphia</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,22.9 110.0,22.9 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Anna Paulson</td>
+          <td class="region" data-label="Region">Philadelphia</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,22.9 110.0,22.9 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-03-27 (3 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Neel Kashkari</td>
-          <td class="region">Minneapolis</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.50<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,14.5 74.7,15.9 145.3,21.5 216.0,14.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Neel Kashkari</td>
+          <td class="region" data-label="Region">Minneapolis</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.50<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,14.5 74.7,15.9 145.3,21.5 216.0,14.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.50</span>
             <span class="muted">2026-05-01 (4 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Jeffrey R. Schmid</td>
-          <td class="region">Kansas City</td>
-          <td class="role">President</td>
-          <td class="score hawk">+1.25<span class="muted"> (90d, n=2)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,11.0 216.0,7.5"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Jeffrey R. Schmid</td>
+          <td class="region" data-label="Region">Kansas City</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+1.25<span class="muted"> (90d, n=2)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,11.0 216.0,7.5"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+1.50</span>
             <span class="muted">2026-03-31 (2 total)</span>
           </td>
         </tr>
 
         <tr>
-          <td class="name">Lorie K. Logan</td>
-          <td class="region">Dallas</td>
-          <td class="role">President</td>
-          <td class="score hawk">+0.80<span class="muted"> (90d, n=1)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,5.4 18.6,12.4 25.9,12.4 33.2,14.5 40.6,12.4 47.9,18.0 55.2,9.6 62.5,18.0 69.8,18.0 77.1,18.0 84.4,12.4 91.7,18.0 99.0,18.0 106.3,14.5 113.7,14.5 121.0,18.0 128.3,15.9 135.6,18.0 142.9,18.0 150.2,16.6 157.5,14.5 164.8,18.0 172.1,18.0 179.4,9.6 186.8,18.0 194.1,18.0 201.4,9.6 208.7,9.6 216.0,12.4"/></svg></td>
-          <td class="last">
+          <td class="name" data-label="Speaker">Lorie K. Logan</td>
+          <td class="region" data-label="Region">Dallas</td>
+          <td class="role" data-label="Role">President</td>
+          <td class="score hawk" data-label="90d mean">+0.80<span class="muted"> (90d, n=1)</span></td>
+          <td class="spark" data-label="Last 30 speeches"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,18.0 11.3,5.4 18.6,12.4 25.9,12.4 33.2,14.5 40.6,12.4 47.9,18.0 55.2,9.6 62.5,18.0 69.8,18.0 77.1,18.0 84.4,12.4 91.7,18.0 99.0,18.0 106.3,14.5 113.7,14.5 121.0,18.0 128.3,15.9 135.6,18.0 142.9,18.0 150.2,16.6 157.5,14.5 164.8,18.0 172.1,18.0 179.4,9.6 186.8,18.0 194.1,18.0 201.4,9.6 208.7,9.6 216.0,12.4"/></svg></td>
+          <td class="last" data-label="Most recent">
             <span class="score hawk">+0.80</span>
             <span class="muted">2026-02-10 (37 total)</span>
           </td>
@@ -619,220 +687,220 @@
 
 <h2>Recent speeches</h2>
 
-    <table class="recent">
+    <table class="recent cards">
       <thead>
         <tr><th>Date</th><th>Speaker</th><th>Score</th><th>Label</th><th>URL</th><th>Rationale</th></tr>
       </thead>
       <tbody><tr>
-              <td>2026-05-08</td>
-              <td>Austan D. Goolsbee</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.chicagofed.org/publications/speeches/2026/may-8-hoover-institution-monetary-policy" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Goolsbee&#x27;s speech is primarily analytical, exploring how anticipated vs. unexpected productivity growth affects the appropriate policy rate. However, the prescriptive conclusion leans hawkish: since surveys show most people expect AI-driven productivity gains to come in the future, this implies rates should be higher now to offset wealth-effect-driven demand pull-forward. He explicitly warns that a central bank that ignores this dynamic ends up with more inflation and must raise rates by more in the end.</td>
+              <td data-label="Date">2026-05-08</td>
+              <td data-label="Speaker">Austan D. Goolsbee</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.chicagofed.org/publications/speeches/2026/may-8-hoover-institution-monetary-policy" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Goolsbee&#x27;s speech is primarily analytical, exploring how anticipated vs. unexpected productivity growth affects the appropriate policy rate. However, the prescriptive conclusion leans hawkish: since surveys show most people expect AI-driven productivity gains to come in the future, this implies rates should be higher now to offset wealth-effect-driven demand pull-forward. He explicitly warns that a central bank that ignores this dynamic ends up with more inflation and must raise rates by more in the end.</td>
             </tr><tr>
-              <td>2026-05-04</td>
-              <td>John C. Williams</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260504" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Williams presents a balanced dual-mandate framing, noting elevated inflation (3.5% PCE) alongside mixed labor market signals, and explicitly states &#x27;the current stance of monetary policy is well positioned to balance the risks to our maximum employment and price stability goals.&#x27; He neither advocates for rate hikes nor cuts, describing risks as having &#x27;increased&#x27; on both sides without prescribing a directional policy shift. The forward-looking base case (inflation returning to 2% by 2027, GDP near trend) is consistent with holding steady.</td>
+              <td data-label="Date">2026-05-04</td>
+              <td data-label="Speaker">John C. Williams</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260504" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Williams presents a balanced dual-mandate framing, noting elevated inflation (3.5% PCE) alongside mixed labor market signals, and explicitly states &#x27;the current stance of monetary policy is well positioned to balance the risks to our maximum employment and price stability goals.&#x27; He neither advocates for rate hikes nor cuts, describing risks as having &#x27;increased&#x27; on both sides without prescribing a directional policy shift. The forward-looking base case (inflation returning to 2% by 2027, GDP near trend) is consistent with holding steady.</td>
             </tr><tr>
-              <td>2026-05-01</td>
-              <td>Neel Kashkari</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.minneapolisfed.org/article/2026/why-i-dissented" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Kashkari dissented because he wanted to remove forward guidance implying the next move is a cut, arguing the FOMC should signal equal probability of a hike or cut given inflation risks from the Middle East conflict. He explicitly raises the possibility of &#x27;a series&#x27; of rate hikes if the Strait of Hormuz closure persists and inflation expectations become unanchored, and favors tightening financial conditions preemptively. While he still sees some eventual easing as possible in the benign scenario, the dominant prescriptive message is to remove dovish forward guidance and remain open to hikes.</td>
+              <td data-label="Date">2026-05-01</td>
+              <td data-label="Speaker">Neel Kashkari</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.minneapolisfed.org/article/2026/why-i-dissented" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Kashkari dissented because he wanted to remove forward guidance implying the next move is a cut, arguing the FOMC should signal equal probability of a hike or cut given inflation risks from the Middle East conflict. He explicitly raises the possibility of &#x27;a series&#x27; of rate hikes if the Strait of Hormuz closure persists and inflation expectations become unanchored, and favors tightening financial conditions preemptively. While he still sees some eventual easing as possible in the benign scenario, the dominant prescriptive message is to remove dovish forward guidance and remain open to hikes.</td>
             </tr><tr>
-              <td>2026-04-17</td>
-              <td>Christopher J. Waller</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/waller20260417a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Waller signals caution about rate cuts in the near term, noting that underlying inflation is still above 2% and that sequential price shocks (tariffs, then energy) risk embedding higher inflation expectations—explicitly invoking the 2021-22 &#x27;look through&#x27; lesson as a cautionary tale. His prescriptive stance leans hawkish: in the benign scenario he is &#x27;cautious about rate cuts now&#x27; and more inclined toward cuts only later, while in the adverse scenario he considers maintaining the current policy rate if inflation risks outweigh labor-market risks. The overall tone is balanced between dual-mandate risks but tilts toward restraint.</td>
+              <td data-label="Date">2026-04-17</td>
+              <td data-label="Speaker">Christopher J. Waller</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/waller20260417a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Waller signals caution about rate cuts in the near term, noting that underlying inflation is still above 2% and that sequential price shocks (tariffs, then energy) risk embedding higher inflation expectations—explicitly invoking the 2021-22 &#x27;look through&#x27; lesson as a cautionary tale. His prescriptive stance leans hawkish: in the benign scenario he is &#x27;cautious about rate cuts now&#x27; and more inclined toward cuts only later, while in the adverse scenario he considers maintaining the current policy rate if inflation risks outweigh labor-market risks. The overall tone is balanced between dual-mandate risks but tilts toward restraint.</td>
             </tr><tr>
-              <td>2026-04-16</td>
-              <td>John C. Williams</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260416" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Williams presents a balanced assessment of both sides of the dual mandate, noting mixed labor market signals alongside inflation crosscurrents, and explicitly states &#x27;the current stance of monetary policy is well positioned to balance the risks.&#x27; He neither advocates for rate hikes nor cuts, holding the funds rate at 3½–3¾% and framing future decisions as data-dependent with risks in both directions.</td>
+              <td data-label="Date">2026-04-16</td>
+              <td data-label="Speaker">John C. Williams</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260416" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Williams presents a balanced assessment of both sides of the dual mandate, noting mixed labor market signals alongside inflation crosscurrents, and explicitly states &#x27;the current stance of monetary policy is well positioned to balance the risks.&#x27; He neither advocates for rate hikes nor cuts, holding the funds rate at 3½–3¾% and framing future decisions as data-dependent with risks in both directions.</td>
             </tr><tr>
-              <td>2026-04-07</td>
-              <td>Philip N. Jefferson</td>
-              <td class="score neutral">+0.30</td>
-              <td>neutral</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260407a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Jefferson describes a balanced dual-mandate risk environment—downside risk to employment and upside risk to inflation—and explicitly supports holding rates steady at current levels, which he characterizes as &#x27;broadly in the range of neutral.&#x27; He notes inflation remains above target with little core progress and tariff headwinds, but also flags labor market fragility, suggesting no strong lean toward either tightening or easing. The slight hawkish tilt comes from emphasis on inflation persistence and the lack of core progress over the past year.</td>
+              <td data-label="Date">2026-04-07</td>
+              <td data-label="Speaker">Philip N. Jefferson</td>
+              <td class="score neutral" data-label="Score">+0.30</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260407a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Jefferson describes a balanced dual-mandate risk environment—downside risk to employment and upside risk to inflation—and explicitly supports holding rates steady at current levels, which he characterizes as &#x27;broadly in the range of neutral.&#x27; He notes inflation remains above target with little core progress and tariff headwinds, but also flags labor market fragility, suggesting no strong lean toward either tightening or easing. The slight hawkish tilt comes from emphasis on inflation persistence and the lack of core progress over the past year.</td>
             </tr><tr>
-              <td>2026-04-01</td>
-              <td>Alberto G. Musalem</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.stlouisfed.org/from-the-president/remarks/2026/economic-outlook-monetary-policy-aei" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Musalem expresses a preference for holding rates steady &#x27;for some time,&#x27; describes the real policy rate as &#x27;in the lower portion of the neutral range&#x27; (implying limited room to ease), and emphasizes upside inflation risks including sticky core services, tariff pass-through, and the danger of supply-shock inflation becoming entrenched as in the 1970s. While he acknowledges downside labor market risks and leaves the door open to cuts under specific conditions, his dominant prescriptive message is caution about premature easing and vigilance against above-target inflation persistence, tilting the overall stance modestly hawkish.</td>
+              <td data-label="Date">2026-04-01</td>
+              <td data-label="Speaker">Alberto G. Musalem</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.stlouisfed.org/from-the-president/remarks/2026/economic-outlook-monetary-policy-aei" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Musalem expresses a preference for holding rates steady &#x27;for some time,&#x27; describes the real policy rate as &#x27;in the lower portion of the neutral range&#x27; (implying limited room to ease), and emphasizes upside inflation risks including sticky core services, tariff pass-through, and the danger of supply-shock inflation becoming entrenched as in the 1970s. While he acknowledges downside labor market risks and leaves the door open to cuts under specific conditions, his dominant prescriptive message is caution about premature easing and vigilance against above-target inflation persistence, tilting the overall stance modestly hawkish.</td>
             </tr><tr>
-              <td>2026-03-31</td>
-              <td>Jeffrey R. Schmid</td>
-              <td class="score hawk">+1.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-march-2026-oklahoma-city/" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Schmid explicitly states he is &#x27;more focused on the risks to inflation at this time&#x27; and argues against looking through the energy price shock, emphasizing that inflation has run above target for five years and progress has stalled near 3%. He prescribes that the Fed must follow through with policy actions to prevent inflation from getting stuck at 3%, downplaying employment risks by describing the labor market as &#x27;operating near full employment&#x27; and the economy entering from &#x27;a position of strength.&#x27;</td>
+              <td data-label="Date">2026-03-31</td>
+              <td data-label="Speaker">Jeffrey R. Schmid</td>
+              <td class="score hawk" data-label="Score">+1.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-march-2026-oklahoma-city/" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Schmid explicitly states he is &#x27;more focused on the risks to inflation at this time&#x27; and argues against looking through the energy price shock, emphasizing that inflation has run above target for five years and progress has stalled near 3%. He prescribes that the Fed must follow through with policy actions to prevent inflation from getting stuck at 3%, downplaying employment risks by describing the labor market as &#x27;operating near full employment&#x27; and the economy entering from &#x27;a position of strength.&#x27;</td>
             </tr><tr>
-              <td>2026-03-30</td>
-              <td>John C. Williams</td>
-              <td class="score neutral">+0.30</td>
-              <td>neutral</td>
-              <td><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260330" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Williams describes a broadly balanced economic picture with solid growth, a stable labor market, and elevated inflation partly driven by tariffs and energy prices. He characterizes current policy as &#x27;well positioned to balance the risks,&#x27; without signaling urgency for either cuts or hikes. The slight hawkish lean comes from inflation running at ~3% above target, an expectation that the unemployment rate will edge down (reducing urgency to cut), and the 2027 timeline for returning to 2% implying no near-term easing.</td>
+              <td data-label="Date">2026-03-30</td>
+              <td data-label="Speaker">John C. Williams</td>
+              <td class="score neutral" data-label="Score">+0.30</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260330" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Williams describes a broadly balanced economic picture with solid growth, a stable labor market, and elevated inflation partly driven by tariffs and energy prices. He characterizes current policy as &#x27;well positioned to balance the risks,&#x27; without signaling urgency for either cuts or hikes. The slight hawkish lean comes from inflation running at ~3% above target, an expectation that the unemployment rate will edge down (reducing urgency to cut), and the 2027 timeline for returning to 2% implying no near-term easing.</td>
             </tr><tr>
-              <td>2026-03-27</td>
-              <td>Thomas I. Barkin</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.richmondfed.org/press_room/speeches/thomas_i_barkin/2026/barkin_speech_20260327" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Barkin explicitly frames risks as balanced — both labor market fragility and inflation stalling — and describes the decision to hold rates as prudent given the foggy outlook. He neither signals a tilt toward cuts nor toward hikes, emphasizing data dependence and awaiting clarity. The speech is squarely in the neutral/balanced camp, consistent with a hold posture.</td>
+              <td data-label="Date">2026-03-27</td>
+              <td data-label="Speaker">Thomas I. Barkin</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.richmondfed.org/press_room/speeches/thomas_i_barkin/2026/barkin_speech_20260327" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Barkin explicitly frames risks as balanced — both labor market fragility and inflation stalling — and describes the decision to hold rates as prudent given the foggy outlook. He neither signals a tilt toward cuts nor toward hikes, emphasizing data dependence and awaiting clarity. The speech is squarely in the neutral/balanced camp, consistent with a hold posture.</td>
             </tr><tr>
-              <td>2026-03-27</td>
-              <td>Anna Paulson</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.philadelphiafed.org/the-economy/monetary-policy/260327-macroeconomics-and-monetary-policy-conference" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Paulson emphasizes that inflation remaining above 2% (currently 2.8%) for six years means the Fed has less room to be patient than during the Greenspan era, and she explicitly states she would &#x27;weight the possibility of overheating more heavily&#x27; if inflation is above target. While the speech is largely framed around AI/productivity uncertainty and long-run R*, the prescriptive message is that current above-target inflation warrants more caution and less patience than the 1990s precedent, a mildly hawkish lean.</td>
+              <td data-label="Date">2026-03-27</td>
+              <td data-label="Speaker">Anna Paulson</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.philadelphiafed.org/the-economy/monetary-policy/260327-macroeconomics-and-monetary-policy-conference" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Paulson emphasizes that inflation remaining above 2% (currently 2.8%) for six years means the Fed has less room to be patient than during the Greenspan era, and she explicitly states she would &#x27;weight the possibility of overheating more heavily&#x27; if inflation is above target. While the speech is largely framed around AI/productivity uncertainty and long-run R*, the prescriptive message is that current above-target inflation warrants more caution and less patience than the 1990s precedent, a mildly hawkish lean.</td>
             </tr><tr>
-              <td>2026-03-26</td>
-              <td>Philip N. Jefferson</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260326a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Jefferson explicitly frames the outlook as balanced between downside labor market risk and upside inflation risk, and endorses holding rates steady as &#x27;well positioned to respond to a range of outcomes.&#x27; He neither advocates for cuts nor for further tightening, emphasizing data dependence and describing current policy as appropriately calibrated—classic balanced/neutral positioning.</td>
+              <td data-label="Date">2026-03-26</td>
+              <td data-label="Speaker">Philip N. Jefferson</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260326a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Jefferson explicitly frames the outlook as balanced between downside labor market risk and upside inflation risk, and endorses holding rates steady as &#x27;well positioned to respond to a range of outcomes.&#x27; He neither advocates for cuts nor for further tightening, emphasizing data dependence and describing current policy as appropriately calibrated—classic balanced/neutral positioning.</td>
             </tr><tr>
-              <td>2026-03-26</td>
-              <td>Michael S. Barr</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/barr20260326a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Barr explicitly supports holding policy steady while emphasizing inflation persistence risks, elevated core inflation (~3%), rising near-term inflation expectations, and the danger that repeated price shocks could entrench inflation above 2%. Although he notes labor market vulnerabilities, his prescriptive stance is to hold and remain vigilant on inflation rather than signal easing, tilting the speech modestly hawkish.</td>
+              <td data-label="Date">2026-03-26</td>
+              <td data-label="Speaker">Michael S. Barr</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/barr20260326a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Barr explicitly supports holding policy steady while emphasizing inflation persistence risks, elevated core inflation (~3%), rising near-term inflation expectations, and the danger that repeated price shocks could entrench inflation above 2%. Although he notes labor market vulnerabilities, his prescriptive stance is to hold and remain vigilant on inflation rather than signal easing, tilting the speech modestly hawkish.</td>
             </tr><tr>
-              <td>2026-03-26</td>
-              <td>Stephen I. Miran</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/miran20260326a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">The speech advocates for reducing the Fed&#x27;s balance sheet, which is a tightening of financial conditions, and explicitly acknowledges its &#x27;contractionary effects for the economy.&#x27; While Miran frames balance sheet reduction as a long-run structural goal rather than an immediate policy prescription, he expresses a clear personal preference (&#x27;I would like to see&#x27;) for further reduction and suggests it would warrant offsetting rate cuts only as a secondary adjustment. The overall thrust is modestly hawkish in its emphasis on shrinking the Fed&#x27;s footprint.</td>
+              <td data-label="Date">2026-03-26</td>
+              <td data-label="Speaker">Stephen I. Miran</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/miran20260326a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">The speech advocates for reducing the Fed&#x27;s balance sheet, which is a tightening of financial conditions, and explicitly acknowledges its &#x27;contractionary effects for the economy.&#x27; While Miran frames balance sheet reduction as a long-run structural goal rather than an immediate policy prescription, he expresses a clear personal preference (&#x27;I would like to see&#x27;) for further reduction and suggests it would warrant offsetting rate cuts only as a secondary adjustment. The overall thrust is modestly hawkish in its emphasis on shrinking the Fed&#x27;s footprint.</td>
             </tr><tr>
-              <td>2026-03-24</td>
-              <td>Michael S. Barr</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/barr20260324a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">The speech is predominantly about community development and CRA, but Barr briefly addresses monetary policy, stating he supported holding rates steady and believes &#x27;we may need to keep rates steady for some time.&#x27; He explicitly conditions any rate cuts on seeing sustained evidence of goods and services inflation retreating, while noting inflation remains &#x27;notably above&#x27; the 2% goal, signaling a patient, higher-for-longer lean rather than easing bias.</td>
+              <td data-label="Date">2026-03-24</td>
+              <td data-label="Speaker">Michael S. Barr</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/barr20260324a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">The speech is predominantly about community development and CRA, but Barr briefly addresses monetary policy, stating he supported holding rates steady and believes &#x27;we may need to keep rates steady for some time.&#x27; He explicitly conditions any rate cuts on seeing sustained evidence of goods and services inflation retreating, while noting inflation remains &#x27;notably above&#x27; the 2% goal, signaling a patient, higher-for-longer lean rather than easing bias.</td>
             </tr><tr>
-              <td>2026-03-06</td>
-              <td>Susan M. Collins</td>
-              <td class="score hawk">+0.80</td>
-              <td>hawkish</td>
-              <td><a href="https://www.bostonfed.org/news-and-events/speeches/2026/economic-outlook-small-business.aspx" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Collins explicitly favors maintaining &#x27;policy rates at their current, mildly restrictive levels for some time,&#x27; citing continued upside inflation risks and no urgency for additional policy adjustments. She emphasizes that core PCE inflation remains a full percentage point above target with demand exerting upward price pressure, while characterizing the labor market as relatively stable — tilting her risk assessment toward patience rather than easing. The stance is hawkish-leaning but not strongly so, as she acknowledges balanced labor market conditions and a fairly benign baseline outlook.</td>
+              <td data-label="Date">2026-03-06</td>
+              <td data-label="Speaker">Susan M. Collins</td>
+              <td class="score hawk" data-label="Score">+0.80</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.bostonfed.org/news-and-events/speeches/2026/economic-outlook-small-business.aspx" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Collins explicitly favors maintaining &#x27;policy rates at their current, mildly restrictive levels for some time,&#x27; citing continued upside inflation risks and no urgency for additional policy adjustments. She emphasizes that core PCE inflation remains a full percentage point above target with demand exerting upward price pressure, while characterizing the labor market as relatively stable — tilting her risk assessment toward patience rather than easing. The stance is hawkish-leaning but not strongly so, as she acknowledges balanced labor market conditions and a fairly benign baseline outlook.</td>
             </tr><tr>
-              <td>2026-03-03</td>
-              <td>John C. Williams</td>
-              <td class="score dove">-0.50</td>
-              <td>dovish</td>
-              <td><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260303" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Williams characterizes monetary policy as &#x27;currently well positioned&#x27; and sees tariff effects as temporary and one-off, with inflation expected to return to 2% by 2027. His forward guidance explicitly notes that &#x27;further reductions in the federal funds rate will eventually be warranted to prevent monetary policy from inadvertently becoming more restrictive,&#x27; signaling a dovish lean toward eventual easing. He also highlights labor market softening signals and cautionary survey data, balancing the inflation discussion with downside employment risks.</td>
+              <td data-label="Date">2026-03-03</td>
+              <td data-label="Speaker">John C. Williams</td>
+              <td class="score dove" data-label="Score">-0.50</td>
+              <td data-label="Label">dovish</td>
+              <td data-label="URL"><a href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260303" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Williams characterizes monetary policy as &#x27;currently well positioned&#x27; and sees tariff effects as temporary and one-off, with inflation expected to return to 2% by 2027. His forward guidance explicitly notes that &#x27;further reductions in the federal funds rate will eventually be warranted to prevent monetary policy from inadvertently becoming more restrictive,&#x27; signaling a dovish lean toward eventual easing. He also highlights labor market softening signals and cautionary survey data, balancing the inflation discussion with downside employment risks.</td>
             </tr><tr>
-              <td>2026-03-03</td>
-              <td>Jeffrey R. Schmid</td>
-              <td class="score hawk">+1.00</td>
-              <td>hawkish</td>
-              <td><a href="https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-march-2026/" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Schmid consistently emphasizes that inflation remains too high at near 3%, warns against complacency, and stresses the risks of inflation becoming entrenched. His framing that &#x27;inflation remains too hot,&#x27; that &#x27;we still have some work to do,&#x27; and his analysis that current demand-driven growth is inflationary all point to a hawkish lean with no prescription for near-term easing. He acknowledges labor market softening but minimizes it by attributing it to structural supply factors rather than cyclical weakness requiring policy response.</td>
+              <td data-label="Date">2026-03-03</td>
+              <td data-label="Speaker">Jeffrey R. Schmid</td>
+              <td class="score hawk" data-label="Score">+1.00</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.kansascityfed.org/speeches/the-economic-outlook-and-monetary-policy-march-2026/" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Schmid consistently emphasizes that inflation remains too high at near 3%, warns against complacency, and stresses the risks of inflation becoming entrenched. His framing that &#x27;inflation remains too hot,&#x27; that &#x27;we still have some work to do,&#x27; and his analysis that current demand-driven growth is inflationary all point to a hawkish lean with no prescription for near-term easing. He acknowledges labor market softening but minimizes it by attributing it to structural supply factors rather than cyclical weakness requiring policy response.</td>
             </tr><tr>
-              <td>2026-02-23</td>
-              <td>Christopher J. Waller</td>
-              <td class="score dove">-0.80</td>
-              <td>dovish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/waller20260223a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Waller dissented in January in favor of a cut and frames the current situation as balanced between holding and cutting, with explicit readiness to cut in March if February labor data disappoints. His baseline view emphasizes labor market fragility (characterizing 2025 as one of the weakest years for job creation outside a recession since 2002), and he treats underlying inflation as already near 2% by looking through tariff effects. While he acknowledges a coin-flip between holding and cutting, his prior dissent and the weight he places on downside labor risks push the stance clearly dovish.</td>
+              <td data-label="Date">2026-02-23</td>
+              <td data-label="Speaker">Christopher J. Waller</td>
+              <td class="score dove" data-label="Score">-0.80</td>
+              <td data-label="Label">dovish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/waller20260223a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Waller dissented in January in favor of a cut and frames the current situation as balanced between holding and cutting, with explicit readiness to cut in March if February labor data disappoints. His baseline view emphasizes labor market fragility (characterizing 2025 as one of the weakest years for job creation outside a recession since 2002), and he treats underlying inflation as already near 2% by looking through tariff effects. While he acknowledges a coin-flip between holding and cutting, his prior dissent and the weight he places on downside labor risks push the stance clearly dovish.</td>
             </tr><tr>
-              <td>2026-02-17</td>
-              <td>Michael S. Barr</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/barr20260217a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Barr opens with explicit policy prescriptions: inflation remains elevated at 3%, he sees &#x27;significant&#x27; risk of persistent inflation, and states it will &#x27;likely be appropriate to hold rates steady for some time.&#x27; He conditions any rate cuts on seeing sustained goods-price disinflation while the labor market remains stable, and argues the AI boom is &#x27;unlikely to be a reason for lowering policy rates.&#x27; The overall stance is modestly hawkish—holding steady with a bias toward patience rather than easing.</td>
+              <td data-label="Date">2026-02-17</td>
+              <td data-label="Speaker">Michael S. Barr</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/barr20260217a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Barr opens with explicit policy prescriptions: inflation remains elevated at 3%, he sees &#x27;significant&#x27; risk of persistent inflation, and states it will &#x27;likely be appropriate to hold rates steady for some time.&#x27; He conditions any rate cuts on seeing sustained goods-price disinflation while the labor market remains stable, and argues the AI boom is &#x27;unlikely to be a reason for lowering policy rates.&#x27; The overall stance is modestly hawkish—holding steady with a bias toward patience rather than easing.</td>
             </tr><tr>
-              <td>2026-02-10</td>
-              <td>Beth M. Hammack</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.clevelandfed.org/collections/speeches/sp-20260210-recipe-for-a-thriving-us-economy" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Hammack explicitly supports holding rates steady with patience, noting the funds rate is &#x27;in the vicinity of neutral&#x27; and inflation remains &#x27;too high&#x27; at 2.8% while having &#x27;moved sideways for more than two years.&#x27; She prefers to &#x27;err on the side of patience&#x27; and acknowledges they &#x27;could be on hold for quite some time,&#x27; with risks to the rate path &#x27;about balanced.&#x27; The speech leans slightly hawkish due to the emphasis on inflation persistence, tariff-driven price pressures, and the risk of inflation becoming entrenched, though the balanced risk assessment and neutral rate framing prevent a stronger hawkish score.</td>
+              <td data-label="Date">2026-02-10</td>
+              <td data-label="Speaker">Beth M. Hammack</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.clevelandfed.org/collections/speeches/sp-20260210-recipe-for-a-thriving-us-economy" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Hammack explicitly supports holding rates steady with patience, noting the funds rate is &#x27;in the vicinity of neutral&#x27; and inflation remains &#x27;too high&#x27; at 2.8% while having &#x27;moved sideways for more than two years.&#x27; She prefers to &#x27;err on the side of patience&#x27; and acknowledges they &#x27;could be on hold for quite some time,&#x27; with risks to the rate path &#x27;about balanced.&#x27; The speech leans slightly hawkish due to the emphasis on inflation persistence, tariff-driven price pressures, and the risk of inflation becoming entrenched, though the balanced risk assessment and neutral rate framing prevent a stronger hawkish score.</td>
             </tr><tr>
-              <td>2026-02-10</td>
-              <td>Lorie K. Logan</td>
-              <td class="score hawk">+0.80</td>
-              <td>hawkish</td>
-              <td><a href="https://www.dallasfed.org/news/speeches/logan/2026/lkl260210" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Logan supports holding rates steady, expresses greater concern about inflation remaining stubbornly high than about labor market weakness, and suggests current policy may already be near neutral (providing &#x27;little restraint&#x27;). She conditions future cuts on labor market deterioration while framing the baseline as &#x27;no further rate cuts are needed,&#x27; tilting the speech hawkish-leaning.</td>
+              <td data-label="Date">2026-02-10</td>
+              <td data-label="Speaker">Lorie K. Logan</td>
+              <td class="score hawk" data-label="Score">+0.80</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.dallasfed.org/news/speeches/logan/2026/lkl260210" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Logan supports holding rates steady, expresses greater concern about inflation remaining stubbornly high than about labor market weakness, and suggests current policy may already be near neutral (providing &#x27;little restraint&#x27;). She conditions future cuts on labor market deterioration while framing the baseline as &#x27;no further rate cuts are needed,&#x27; tilting the speech hawkish-leaning.</td>
             </tr><tr>
-              <td>2026-02-06</td>
-              <td>Philip N. Jefferson</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260206a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Jefferson explicitly frames the current policy stance as &#x27;well positioned to address the risks to both sides of our dual mandate,&#x27; supports holding rates steady at the current level (after 175bps of cuts that brought rates to the neutral range), and employs balanced data-dependent language throughout. He acknowledges inflation remains elevated and above target but sees tariff effects as transitory, while also noting labor market softening risks—giving roughly equal weight to both sides of the mandate with no clear prescriptive lean toward either further cuts or hikes.</td>
+              <td data-label="Date">2026-02-06</td>
+              <td data-label="Speaker">Philip N. Jefferson</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260206a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Jefferson explicitly frames the current policy stance as &#x27;well positioned to address the risks to both sides of our dual mandate,&#x27; supports holding rates steady at the current level (after 175bps of cuts that brought rates to the neutral range), and employs balanced data-dependent language throughout. He acknowledges inflation remains elevated and above target but sees tariff effects as transitory, while also noting labor market softening risks—giving roughly equal weight to both sides of the mandate with no clear prescriptive lean toward either further cuts or hikes.</td>
             </tr><tr>
-              <td>2026-02-05</td>
-              <td>Raphael W. Bostic</td>
-              <td class="score hawk">+0.50</td>
-              <td>hawkish</td>
-              <td><a href="https://www.youtube.com/live/-E4dw7pCIbI" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Bostic&#x27;s primary policy prescription is that rates should remain in a &#x27;moderately restrictive&#x27; posture to bring inflation back to 2%, noting inflation has been &#x27;too high for too long.&#x27; He acknowledges labor market softening but characterizes current unemployment (4.4%) as &#x27;still extraordinarily strong&#x27; and says the economy can &#x27;just run for a while before we have to do anything else,&#x27; suggesting no urgency to cut. The overall stance leans mildly hawkish given the explicit preference for maintaining restriction.</td>
+              <td data-label="Date">2026-02-05</td>
+              <td data-label="Speaker">Raphael W. Bostic</td>
+              <td class="score hawk" data-label="Score">+0.50</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.youtube.com/live/-E4dw7pCIbI" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Bostic&#x27;s primary policy prescription is that rates should remain in a &#x27;moderately restrictive&#x27; posture to bring inflation back to 2%, noting inflation has been &#x27;too high for too long.&#x27; He acknowledges labor market softening but characterizes current unemployment (4.4%) as &#x27;still extraordinarily strong&#x27; and says the economy can &#x27;just run for a while before we have to do anything else,&#x27; suggesting no urgency to cut. The overall stance leans mildly hawkish given the explicit preference for maintaining restriction.</td>
             </tr><tr>
-              <td>2026-02-04</td>
-              <td>Lisa D. Cook</td>
-              <td class="score hawk">+0.80</td>
-              <td>hawkish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/cook20260204a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Governor Cook explicitly states that risks are &#x27;tilted toward higher inflation&#x27; and supported holding rates steady, emphasizing that inflation has &#x27;stalled stubbornly above our 2 percent goal&#x27; and that further easing is contingent on seeing &#x27;stronger evidence that inflation is moving sustainably back down to target.&#x27; While she acknowledges labor market softening and downside risks, her prescriptive stance prioritizes inflation credibility and shows no inclination toward near-term rate cuts.</td>
+              <td data-label="Date">2026-02-04</td>
+              <td data-label="Speaker">Lisa D. Cook</td>
+              <td class="score hawk" data-label="Score">+0.80</td>
+              <td data-label="Label">hawkish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/cook20260204a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Governor Cook explicitly states that risks are &#x27;tilted toward higher inflation&#x27; and supported holding rates steady, emphasizing that inflation has &#x27;stalled stubbornly above our 2 percent goal&#x27; and that further easing is contingent on seeing &#x27;stronger evidence that inflation is moving sustainably back down to target.&#x27; While she acknowledges labor market softening and downside risks, her prescriptive stance prioritizes inflation credibility and shows no inclination toward near-term rate cuts.</td>
             </tr><tr>
-              <td>2026-02-03</td>
-              <td>Thomas I. Barkin</td>
-              <td class="score neutral">+0.30</td>
-              <td>neutral</td>
-              <td><a href="https://www.richmondfed.org/press_room/speeches/thomas_i_barkin/2026/barkin_speech_20260203" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Barkin describes an economy that remains resilient with inflation still above target, but frames past rate cuts as &#x27;insurance&#x27; for the labor market rather than signaling urgency for further easing or tightening. He acknowledges inflation persistence seriously (&#x27;I take this sustained miss seriously&#x27;) while also noting downside risks to growth and employment, resulting in a roughly balanced stance with a slight hawkish tilt due to inflation vigilance.</td>
+              <td data-label="Date">2026-02-03</td>
+              <td data-label="Speaker">Thomas I. Barkin</td>
+              <td class="score neutral" data-label="Score">+0.30</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.richmondfed.org/press_room/speeches/thomas_i_barkin/2026/barkin_speech_20260203" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Barkin describes an economy that remains resilient with inflation still above target, but frames past rate cuts as &#x27;insurance&#x27; for the labor market rather than signaling urgency for further easing or tightening. He acknowledges inflation persistence seriously (&#x27;I take this sustained miss seriously&#x27;) while also noting downside risks to growth and employment, resulting in a roughly balanced stance with a slight hawkish tilt due to inflation vigilance.</td>
             </tr><tr>
-              <td>2026-01-30</td>
-              <td>Michelle W. Bowman</td>
-              <td class="score dove">-1.00</td>
-              <td>dovish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260130a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Bowman explicitly frames downside labor-market risks as the dominant concern, notes that policy remains &#x27;moderately restrictive,&#x27; and signals readiness to cut toward neutral absent a clear improvement in labor conditions. She downplays elevated inflation readings by attributing them to tariff effects and statistical noise, and cautions against signaling an extended pause. Her projection of three cuts in 2026 and emphasis on not delaying action if labor markets deteriorate reinforces a dovish-leaning stance.</td>
+              <td data-label="Date">2026-01-30</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td class="score dove" data-label="Score">-1.00</td>
+              <td data-label="Label">dovish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260130a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Bowman explicitly frames downside labor-market risks as the dominant concern, notes that policy remains &#x27;moderately restrictive,&#x27; and signals readiness to cut toward neutral absent a clear improvement in labor conditions. She downplays elevated inflation readings by attributing them to tariff effects and statistical noise, and cautions against signaling an extended pause. Her projection of three cuts in 2026 and emphasis on not delaying action if labor markets deteriorate reinforces a dovish-leaning stance.</td>
             </tr><tr>
-              <td>2026-01-16</td>
-              <td>Philip N. Jefferson</td>
-              <td class="score dove">-0.50</td>
-              <td>dovish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260116a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Jefferson signals that prior rate cuts were appropriate given rising downside employment risks and characterizes current policy as near-neutral, suggesting a patient, data-dependent pause rather than any further tightening. He frames the balance of risks as having shifted toward employment and treats tariff-driven goods inflation as likely transitory, reducing urgency for restrictive policy. His forward guidance is explicitly non-committal but leans toward holding rather than hiking.</td>
+              <td data-label="Date">2026-01-16</td>
+              <td data-label="Speaker">Philip N. Jefferson</td>
+              <td class="score dove" data-label="Score">-0.50</td>
+              <td data-label="Label">dovish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/jefferson20260116a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Jefferson signals that prior rate cuts were appropriate given rising downside employment risks and characterizes current policy as near-neutral, suggesting a patient, data-dependent pause rather than any further tightening. He frames the balance of risks as having shifted toward employment and treats tariff-driven goods inflation as likely transitory, reducing urgency for restrictive policy. His forward guidance is explicitly non-committal but leans toward holding rather than hiking.</td>
             </tr><tr>
-              <td>2026-01-16</td>
-              <td>Michelle W. Bowman</td>
-              <td class="score dove">-1.20</td>
-              <td>dovish</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260116a.htm" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">Bowman explicitly frames labor market fragility as the dominant risk, argues inflation is near target after stripping out tariff effects, and advocates for preemptive policy easing to &#x27;stabilize and support labor market conditions.&#x27; She characterizes current policy as only &#x27;moderately restrictive&#x27; and explicitly warns against signaling a pause, indicating a clear bias toward further cuts. The speech supports the three 25bp cuts already delivered in 2025 and calls for readiness to ease further absent clear labor market improvement.</td>
+              <td data-label="Date">2026-01-16</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td class="score dove" data-label="Score">-1.20</td>
+              <td data-label="Label">dovish</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260116a.htm" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">Bowman explicitly frames labor market fragility as the dominant risk, argues inflation is near target after stripping out tariff effects, and advocates for preemptive policy easing to &#x27;stabilize and support labor market conditions.&#x27; She characterizes current policy as only &#x27;moderately restrictive&#x27; and explicitly warns against signaling a pause, indicating a clear bias toward further cuts. The speech supports the three 25bp cuts already delivered in 2025 and calls for readiness to ease further absent clear labor market improvement.</td>
             </tr><tr>
-              <td>2026-01-16</td>
-              <td>Susan M. Collins</td>
-              <td class="score neutral">+0.00</td>
-              <td>neutral</td>
-              <td><a href="https://www.bostonfed.org/news-and-events/speeches/2026/intro-remarks-new-england-econ-forum.aspx" target="_blank" rel="noopener">link</a></td>
-              <td class="rationale">This speech is purely introductory remarks at a banking forum, explicitly stating &#x27;I won&#x27;t be addressing the economy or monetary policy in these brief comments.&#x27; The content focuses on the structure of the Federal Reserve System, the Boston Fed&#x27;s mission, and an introduction of Vice Chair Bowman, with no monetary policy prescriptions whatsoever.</td>
+              <td data-label="Date">2026-01-16</td>
+              <td data-label="Speaker">Susan M. Collins</td>
+              <td class="score neutral" data-label="Score">+0.00</td>
+              <td data-label="Label">neutral</td>
+              <td data-label="URL"><a href="https://www.bostonfed.org/news-and-events/speeches/2026/intro-remarks-new-england-econ-forum.aspx" target="_blank" rel="noopener">link</a></td>
+              <td class="rationale" data-label="Rationale">This speech is purely introductory remarks at a banking forum, explicitly stating &#x27;I won&#x27;t be addressing the economy or monetary policy in these brief comments.&#x27; The content focuses on the structure of the Federal Reserve System, the Boston Fed&#x27;s mission, and an introduction of Vice Chair Bowman, with no monetary policy prescriptions whatsoever.</td>
             </tr></tbody>
     </table>
 
@@ -845,7 +913,7 @@
         computed only from items that DO have a score, so it's worth knowing
         what was deliberately left out.
       </p>
-      <table class="recent">
+      <table class="recent cards">
         <thead>
           <tr>
             <th>Date</th><th>Speaker</th><th>Reason</th>
@@ -853,173 +921,173 @@
           </tr>
         </thead>
         <tbody><tr>
-              <td>2026-05-08</td>
-              <td>Christopher J. Waller</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/waller20260508a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-08</td>
+              <td data-label="Speaker">Christopher J. Waller</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/waller20260508a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-08</td>
-              <td>Lisa D. Cook</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/cook20260508a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-08</td>
+              <td data-label="Speaker">Lisa D. Cook</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/cook20260508a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-08</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260508a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-08</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260508a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-08</td>
-              <td>Jeffrey R. Schmid</td>
-              <td>Failed speech-likeness filter</td>
-              <td class="muted">too_short (words=239)</td>
-              <td><a href="https://www.kansascityfed.org/speeches/speakers-bureau/" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-08</td>
+              <td data-label="Speaker">Jeffrey R. Schmid</td>
+              <td data-label="Reason">Failed speech-likeness filter</td>
+              <td class="muted" data-label="Note">too_short (words=239)</td>
+              <td data-label="URL"><a href="https://www.kansascityfed.org/speeches/speakers-bureau/" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-06</td>
-              <td>Austan D. Goolsbee</td>
-              <td>Failed speech-likeness filter</td>
-              <td class="muted">too_short (words=81)</td>
-              <td><a href="https://www.chicagofed.org/publications/speeches/2026/may-6-milken-institute" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-06</td>
+              <td data-label="Speaker">Austan D. Goolsbee</td>
+              <td data-label="Reason">Failed speech-likeness filter</td>
+              <td class="muted" data-label="Note">too_short (words=81)</td>
+              <td data-label="URL"><a href="https://www.chicagofed.org/publications/speeches/2026/may-6-milken-institute" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-06</td>
-              <td>Alberto G. Musalem</td>
-              <td>Failed speech-likeness filter</td>
-              <td class="muted">too_short (words=38)</td>
-              <td><a href="https://www.stlouisfed.org/from-the-president/remarks/2026/ms-bankers-association-qa" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-06</td>
+              <td data-label="Speaker">Alberto G. Musalem</td>
+              <td data-label="Reason">Failed speech-likeness filter</td>
+              <td class="muted" data-label="Note">too_short (words=38)</td>
+              <td data-label="URL"><a href="https://www.stlouisfed.org/from-the-president/remarks/2026/ms-bankers-association-qa" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-05</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260505a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-05</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260505a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-01</td>
-              <td>Beth M. Hammack</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.clevelandfed.org/collections/speeches/2026/sp-20260501-statement-regarding-april-fomc-meeting-vote" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-01</td>
+              <td data-label="Speaker">Beth M. Hammack</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.clevelandfed.org/collections/speeches/2026/sp-20260501-statement-regarding-april-fomc-meeting-vote" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-05-01</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260501a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-05-01</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260501a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-04-21</td>
-              <td>Christopher J. Waller</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/waller20260421a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-04-21</td>
+              <td data-label="Speaker">Christopher J. Waller</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/waller20260421a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-04-14</td>
-              <td>Michael S. Barr</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/barr20260414a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-04-14</td>
+              <td data-label="Speaker">Michael S. Barr</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/barr20260414a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-04-08</td>
-              <td>Mary C. Daly</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.frbsf.org/news-and-media/speeches/mary-c-daly/2026/04/many-voices-one-purpose/" rel="noopener">link</a></td>
+              <td data-label="Date">2026-04-08</td>
+              <td data-label="Speaker">Mary C. Daly</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.frbsf.org/news-and-media/speeches/mary-c-daly/2026/04/many-voices-one-purpose/" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-04-02</td>
-              <td>Lorie K. Logan</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.dallasfed.org/news/speeches/logan/2026/lkl260402" rel="noopener">link</a></td>
+              <td data-label="Date">2026-04-02</td>
+              <td data-label="Speaker">Lorie K. Logan</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.dallasfed.org/news/speeches/logan/2026/lkl260402" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-31</td>
-              <td>Michael S. Barr</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/barr20260331a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-31</td>
+              <td data-label="Speaker">Michael S. Barr</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/barr20260331a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-31</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260331a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-31</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260331a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-26</td>
-              <td>Lisa D. Cook</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/cook20260326a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-26</td>
+              <td data-label="Speaker">Lisa D. Cook</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/cook20260326a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-21</td>
-              <td>Jerome H. Powell</td>
-              <td>Failed speech-likeness filter</td>
-              <td class="muted">too_short (words=411)</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/powell20260321a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-21</td>
+              <td data-label="Speaker">Jerome H. Powell</td>
+              <td data-label="Reason">Failed speech-likeness filter</td>
+              <td class="muted" data-label="Note">too_short (words=411)</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/powell20260321a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-12</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260312a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-12</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260312a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-06</td>
-              <td>Anna Paulson</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.philadelphiafed.org/the-economy/monetary-policy/260306-2026-us-monetary-policy-forum" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-06</td>
+              <td data-label="Speaker">Anna Paulson</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.philadelphiafed.org/the-economy/monetary-policy/260306-2026-us-monetary-policy-forum" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-06</td>
-              <td>Beth M. Hammack</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.clevelandfed.org/collections/speeches/sp-20260306-on-the-safe-haven-status-of-the-dollar" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-06</td>
+              <td data-label="Speaker">Beth M. Hammack</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.clevelandfed.org/collections/speeches/sp-20260306-on-the-safe-haven-status-of-the-dollar" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-03-03</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260303a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-03-03</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260303a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-24</td>
-              <td>Susan M. Collins</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.bostonfed.org/news-and-events/speeches/2026/remarks-at-2026-tech-enabled-disruption-conference.aspx" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-24</td>
+              <td data-label="Speaker">Susan M. Collins</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.bostonfed.org/news-and-events/speeches/2026/remarks-at-2026-tech-enabled-disruption-conference.aspx" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-24</td>
-              <td>Christopher J. Waller</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/waller20260224a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-24</td>
+              <td data-label="Speaker">Christopher J. Waller</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/waller20260224a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-24</td>
-              <td>Lisa D. Cook</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/cook20260224a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-24</td>
+              <td data-label="Speaker">Lisa D. Cook</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/cook20260224a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-20</td>
-              <td>Raphael W. Bostic</td>
-              <td>YouTube captions unavailable</td>
-              <td class="muted">TranscriptsDisabled for https://www.youtube.com/live/izmOhgLd_b4</td>
-              <td><a href="https://www.youtube.com/live/izmOhgLd_b4" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-20</td>
+              <td data-label="Speaker">Raphael W. Bostic</td>
+              <td data-label="Reason">YouTube captions unavailable</td>
+              <td class="muted" data-label="Note">TranscriptsDisabled for https://www.youtube.com/live/izmOhgLd_b4</td>
+              <td data-label="URL"><a href="https://www.youtube.com/live/izmOhgLd_b4" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-19</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260219a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-19</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260219a.htm" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-17</td>
-              <td>Mary C. Daly</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.frbsf.org/news-and-media/speeches/mary-c-daly/2026/02/the-ai-moment-possibilities-productivity-and-policy/" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-17</td>
+              <td data-label="Speaker">Mary C. Daly</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.frbsf.org/news-and-media/speeches/mary-c-daly/2026/02/the-ai-moment-possibilities-productivity-and-policy/" rel="noopener">link</a></td>
             </tr><tr>
-              <td>2026-02-16</td>
-              <td>Michelle W. Bowman</td>
-              <td>Excluded by rubric (non-MP topic)</td>
-              <td class="muted">previously excluded; original rationale not preserved</td>
-              <td><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260216a.htm" rel="noopener">link</a></td>
+              <td data-label="Date">2026-02-16</td>
+              <td data-label="Speaker">Michelle W. Bowman</td>
+              <td data-label="Reason">Excluded by rubric (non-MP topic)</td>
+              <td class="muted" data-label="Note">previously excluded; original rationale not preserved</td>
+              <td data-label="URL"><a href="https://www.federalreserve.gov/newsevents/speech/bowman20260216a.htm" rel="noopener">link</a></td>
             </tr></tbody>
       </table>
     </section>
@@ -1033,20 +1101,20 @@
         transcript-archived speech in a while (TV/podcast appearances are
         intentionally excluded).
       </p>
-      <table class="recent">
+      <table class="recent cards">
         <thead>
           <tr><th>Speaker</th><th>Region</th><th>Last speech</th><th>Silent for</th></tr>
         </thead>
         <tbody><tr>
-              <td>Raphael W. Bostic</td>
-              <td class="region">Atlanta</td>
-              <td>2026-02-05</td>
-              <td class="muted">93 days</td>
+              <td data-label="Speaker">Raphael W. Bostic</td>
+              <td class="region" data-label="Region">Atlanta</td>
+              <td data-label="Last speech">2026-02-05</td>
+              <td class="muted" data-label="Silent for">93 days</td>
             </tr><tr>
-              <td>Susan M. Collins</td>
-              <td class="region">Boston</td>
-              <td>2026-03-06</td>
-              <td class="muted">64 days</td>
+              <td data-label="Speaker">Susan M. Collins</td>
+              <td class="region" data-label="Region">Boston</td>
+              <td data-label="Last speech">2026-03-06</td>
+              <td class="muted" data-label="Silent for">64 days</td>
             </tr></tbody>
       </table>
     </section>
