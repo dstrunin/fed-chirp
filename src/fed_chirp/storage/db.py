@@ -115,6 +115,23 @@ CREATE TABLE IF NOT EXISTS market_reactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_market_reactions_date ON market_reactions(meeting_date);
+
+-- Records every speech that the pipeline saw but did NOT produce a score for,
+-- so the dashboard can surface them for transparency. Reasons:
+--   "fetch_failed"        -> exception during fetch (network, parse, etc.)
+--   "captions_unavailable"-> YouTube subtitles disabled/missing
+--   "filter_rejected"     -> speech-likeness filter said no (empty/short/nav)
+--   "rubric_excluded"     -> Claude returned score=null (non-MP topic or junk)
+CREATE TABLE IF NOT EXISTS processing_skips (
+    url            TEXT PRIMARY KEY,
+    speaker_key    TEXT NOT NULL,
+    pub_date       TEXT,
+    reason         TEXT NOT NULL,
+    message        TEXT,
+    recorded_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_skips_pub_date ON processing_skips(pub_date);
 """
 
 
@@ -177,6 +194,16 @@ class MarketReaction:
     nextday_range_pct: float | None
     nextday_max_move_pct: float | None
     fetched_at: dt.datetime
+
+
+@dataclass
+class ProcessingSkip:
+    url: str
+    speaker_key: str
+    pub_date: dt.date | None
+    reason: str
+    message: str
+    recorded_at: dt.datetime
 
 
 @dataclass
@@ -414,6 +441,65 @@ class Database:
                    ORDER BY s.speech_date DESC""",
             ).fetchall()
         return [_row_to_score(r) for r in rows]
+
+    # ---- processing skips (transparency log) ----
+
+    def record_skip(
+        self,
+        url: str,
+        speaker_key: str,
+        pub_date: dt.date | None,
+        reason: str,
+        message: str,
+    ) -> None:
+        """Log a speech the pipeline declined to score.
+
+        Idempotent on `url`: re-running the pipeline on the same URL just
+        updates the reason/message/timestamp.
+        """
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO processing_skips
+                   (url, speaker_key, pub_date, reason, message, recorded_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    url,
+                    speaker_key,
+                    pub_date.isoformat() if pub_date else None,
+                    reason,
+                    message,
+                    dt.datetime.now(dt.timezone.utc).isoformat(),
+                ),
+            )
+
+    def clear_skip(self, url: str) -> None:
+        """Remove a URL's skip record. Called when the URL eventually succeeds."""
+        with self.connect() as conn:
+            conn.execute("DELETE FROM processing_skips WHERE url = ?", (url,))
+
+    def recent_skips(self, since: dt.date) -> list[ProcessingSkip]:
+        """Skips with pub_date on/after `since`, newest first."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT url, speaker_key, pub_date, reason, message, recorded_at
+                   FROM processing_skips
+                   WHERE pub_date IS NOT NULL AND pub_date >= ?
+                   ORDER BY pub_date DESC""",
+                (since.isoformat(),),
+            ).fetchall()
+        out: list[ProcessingSkip] = []
+        for r in rows:
+            out.append(
+                ProcessingSkip(
+                    url=r["url"],
+                    speaker_key=r["speaker_key"],
+                    pub_date=dt.date.fromisoformat(r["pub_date"]) if r["pub_date"] else None,
+                    reason=r["reason"],
+                    message=r["message"] or "",
+                    recorded_at=dt.datetime.fromisoformat(r["recorded_at"]),
+                )
+            )
+        return out
 
     def last_speech_dates(self, doc_type: str = "speech") -> dict[str, dt.date]:
         """Return {speaker_key: latest_speech_date} across the speeches table.

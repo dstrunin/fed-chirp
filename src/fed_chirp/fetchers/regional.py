@@ -34,6 +34,7 @@ from .federalreserve import (
     extract_paragraphs,
 )
 from .pdf import fetch_pdf_text
+from . import youtube
 
 
 # ---- shared helpers ---------------------------------------------------------
@@ -291,6 +292,8 @@ class RssHtmlParser:
         return refs
 
     def fetch(self, ref: SpeechRef, *, pw=None) -> Speech:
+        if youtube.is_youtube_url(ref.url):
+            return youtube.fetch_transcript(ref)
         html = _http_get(ref.url)
         soup = BeautifulSoup(html, "lxml")
         parsed = self._parse_body(soup, ref)
@@ -363,7 +366,10 @@ class AtlantaParser(RssHtmlParser):
     appearances; only speeches on atlantafed.org have transcripts to score.
     """
     BODY_SELECTOR = "article.article-frame"
-    DOMAIN_ALLOWLIST = ("atlantafed.org",)
+    # YouTube hosts are kept in the allowlist so Bostic's live-stream
+    # appearances flow through to the YouTube auto-caption fetcher.
+    # Non-YT external sites (farmjournaltv etc.) are still filtered out.
+    DOMAIN_ALLOWLIST = ("atlantafed.org", "youtube.com", "youtu.be")
 
     def _parse_body(self, soup: BeautifulSoup, ref: SpeechRef) -> _BodyParse:
         node = soup.select_one(self.BODY_SELECTOR)
