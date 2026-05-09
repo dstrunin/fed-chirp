@@ -97,6 +97,7 @@ def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
         return f"""
         <tr>
           <td class="name">{html.escape(speaker.name)}</td>
+          <td class="region">{html.escape(speaker.region)}</td>
           <td class="role">{html.escape(speaker.role)}</td>
           <td class="muted">no speeches scored yet</td>
           <td></td>
@@ -119,6 +120,7 @@ def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
     return f"""
         <tr>
           <td class="name">{html.escape(speaker.name)}</td>
+          <td class="region">{html.escape(speaker.region)}</td>
           <td class="role">{html.escape(speaker.role)}</td>
           <td class="score {avg_class}">{avg_str}<span class="muted"> (90d, n={len(window)})</span></td>
           <td class="spark">{spark}</td>
@@ -733,9 +735,9 @@ _PAGE = """<!doctype html>
 <h2>Market-implied path</h2>
 {futures_html}
 
-<h2>Board governors</h2>
+<h2>Governors and presidents</h2>
 <table>
-  <thead><tr><th>Speaker</th><th>Role</th><th>90d mean</th>
+  <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
              <th>Last 30 speeches</th><th>Most recent</th></tr></thead>
   <tbody>{speakers_html}</tbody>
 </table>

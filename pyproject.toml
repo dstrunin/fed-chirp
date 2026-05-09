@@ -18,6 +18,7 @@ dependencies = [
     "click>=8.1",
     "pypdf>=4.0",
     "yfinance>=0.2.40",
+    "playwright>=1.45",
 ]
 
 [project.scripts]

@@ -1,48 +1,74 @@
-# Federal Reserve Board governors as of 2026-05.
-# Each entry: canonical key (last name, lowercase), full name, role, RSS feed.
-# `aliases` are byline strings (case-insensitive substring match) used to
-# resolve a speech back to a canonical key when parsing per-speech HTML.
+# Federal Reserve Board governors + 12 regional Fed bank presidents.
+# Each entry: canonical key (lowercase, bank-prefixed for regionals), full
+# name, role, region label, source dispatch tag, RSS feed or index URL.
+#
+# `aliases` are byline strings (case-insensitive substring match) used by
+# _resolve_speaker_from_url for the FRB Board governors only — regional
+# banks resolve via hostname instead (see cli.py:_REGIONAL_HOSTS).
+#
+# `source` controls which fetcher handles the speaker:
+#   frb_board           — federalreserve.gov per-speaker RSS feed
+#   regional_rss_html   — bank-hosted RSS + server-rendered HTML
+#   regional_html       — scrape listing page + server-rendered HTML
+#   regional_js         — same, but listing page requires headless Chromium
+#   fomc                — synthetic; FOMC docs use fetchers/fomc.py
 
 speakers:
+  # ---- Federal Reserve Board governors (Washington, D.C.) ----
+
   - key: powell
     name: Jerome H. Powell
     role: Chair
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_powell.xml
     aliases: ["powell"]
 
   - key: jefferson
     name: Philip N. Jefferson
     role: Vice Chair
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_jefferson.xml
     aliases: ["jefferson"]
 
   - key: bowman
     name: Michelle W. Bowman
     role: Vice Chair for Supervision
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/m_w_Bowman.xml
     aliases: ["bowman"]
 
   - key: barr
     name: Michael S. Barr
     role: Governor
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_barr.xml
     aliases: ["barr"]
 
   - key: cook
     name: Lisa D. Cook
     role: Governor
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_cook.xml
     aliases: ["cook"]
 
   - key: miran
     name: Stephen I. Miran
     role: Governor
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_miran.xml
     aliases: ["miran"]
 
   - key: waller
     name: Christopher J. Waller
     role: Governor
+    region: Board
+    source: frb_board
     rss: https://www.federalreserve.gov/feeds/s_t_waller.xml
     aliases: ["waller"]
 
@@ -52,5 +78,130 @@ speakers:
   - key: fomc
     name: FOMC Committee
     role: Committee
+    region: Board
+    source: fomc
     rss: null
     aliases: ["fomc"]
+
+  # ---- Regional Fed bank presidents ----
+  #
+  # Banks fall into three groups based on how they publish speech text:
+  #   regional_rss_html — bank exposes a working RSS feed of its speeches.
+  #   regional_html     — no RSS (or stale); scrape the speeches index page.
+  #   regional_js       — listing page is rendered client-side; needs
+  #                       headless Chromium via Playwright.
+
+  # Group A — RSS + HTML
+  - key: atlanta_bostic
+    name: Raphael W. Bostic
+    role: President
+    region: Atlanta
+    source: regional_rss_html
+    rss: https://www.atlantafed.org/rss/speechindex
+    aliases: []
+
+  - key: richmond_barkin
+    name: Thomas I. Barkin
+    role: President
+    region: Richmond
+    source: regional_rss_html
+    rss: https://www.richmondfed.org/press_room/speeches?cc_view=rss
+    aliases: []
+
+  # Group B — HTML index (server-rendered)
+  - key: boston_collins
+    name: Susan M. Collins
+    role: President
+    region: Boston
+    source: regional_html
+    rss: null
+    index_url: https://www.bostonfed.org/news-and-events/speeches.aspx
+    aliases: []
+
+  - key: ny_williams
+    name: John C. Williams
+    role: President
+    region: New York
+    source: regional_html
+    rss: null
+    index_url: https://www.newyorkfed.org/newsevents/speeches/index
+    aliases: []
+
+  - key: sf_daly
+    name: Mary C. Daly
+    role: President
+    region: San Francisco
+    source: regional_html
+    rss: null
+    index_url: https://www.frbsf.org/news-and-media/speeches/
+    aliases: []
+
+  # Group C — JavaScript-required (Playwright). Parsers added in Phase 4 step 3.
+  - key: chicago_goolsbee
+    name: Austan D. Goolsbee
+    role: President
+    region: Chicago
+    source: regional_js
+    rss: null
+    # Chicago doesn't expose a public speech archive; the homepage links to
+    # the most recent speech. This means coverage is "latest-speech-only";
+    # backfill the rest manually via score-one if needed.
+    index_url: https://www.chicagofed.org
+    aliases: []
+
+  - key: cleveland_hammack
+    name: Beth M. Hammack
+    role: President
+    region: Cleveland
+    source: regional_js
+    rss: null
+    index_url: https://www.clevelandfed.org/collections/speeches
+    aliases: []
+
+  - key: stl_musalem
+    name: Alberto G. Musalem
+    role: President
+    region: St. Louis
+    source: regional_js
+    rss: null
+    index_url: https://www.stlouisfed.org/from-the-president/remarks
+    aliases: []
+
+  - key: philly_paulson
+    name: Anna Paulson
+    role: President
+    region: Philadelphia
+    source: regional_js
+    rss: null
+    # Philly publishes Paulson's speeches under the monetary-policy section
+    # (no per-person speeches index page exists).
+    index_url: https://www.philadelphiafed.org/the-economy/monetary-policy
+    aliases: []
+
+  - key: mpls_kashkari
+    name: Neel Kashkari
+    role: President
+    region: Minneapolis
+    source: regional_js
+    rss: null
+    # Mpls lists Kashkari's speeches on his profile page.
+    index_url: https://www.minneapolisfed.org/people/neel-kashkari
+    aliases: []
+
+  - key: kc_schmid
+    name: Jeffrey R. Schmid
+    role: President
+    region: Kansas City
+    source: regional_js
+    rss: null
+    index_url: https://www.kansascityfed.org/speeches/
+    aliases: []
+
+  - key: dallas_logan
+    name: Lorie K. Logan
+    role: President
+    region: Dallas
+    source: regional_js
+    rss: null
+    index_url: https://www.dallasfed.org/news/speeches/logan
+    aliases: []

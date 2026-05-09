@@ -27,17 +27,21 @@ class Speaker:
     key: str
     name: str
     role: str
-    rss: str | None  # None for synthetic speakers (e.g., "fomc")
+    rss: str | None  # None for synthetic speakers (e.g., "fomc") and non-RSS regionals
     aliases: tuple[str, ...]
+    region: str = "Board"           # "Board", "Boston", "New York", ... — dashboard column
+    source: str = "frb_board"       # "frb_board" | "fomc" | "regional_rss_html" | "regional_html" | "regional_js"
+    index_url: str | None = None    # listing-page URL for non-RSS regionals
 
 
 @dataclass
 class SpeechRef:
-    """Lightweight pointer returned by RSS discovery."""
+    """Lightweight pointer returned by RSS / index-page discovery."""
     url: str
     speaker_key: str
     title: str
     pub_date: dt.date
+    source: str = "frb_board"       # carried over from Speaker so fetch can dispatch
 
 
 @dataclass
@@ -61,16 +65,44 @@ def load_speakers(config_path: str | Path) -> list[Speaker]:
             role=s["role"],
             rss=s["rss"],
             aliases=tuple(a.lower() for a in s.get("aliases", [])),
+            region=s.get("region", "Board"),
+            source=s.get("source", "frb_board"),
+            index_url=s.get("index_url"),
         )
         for s in raw["speakers"]
     ]
 
 
-def discover(speakers: list[Speaker], since: dt.date | None = None) -> list[SpeechRef]:
-    """Fetch all per-speaker RSS feeds and return SpeechRefs.
+def discover(
+    speakers: list[Speaker],
+    since: dt.date | None = None,
+    *,
+    pw=None,
+) -> list[SpeechRef]:
+    """Fetch all per-speaker speech indexes and return SpeechRefs.
 
-    `since` filters by pub_date >= since when provided.
+    Dispatches by `speaker.source`:
+      - "frb_board": existing per-speaker RSS feeds on federalreserve.gov
+      - "regional_*": delegated to fetchers/regional.py
+      - "fomc": skipped (FOMC docs use fetchers/fomc.py)
+
+    `since` filters by pub_date >= since when provided. `pw` is an optional
+    Playwright context (for regional_js banks); ignored otherwise.
     """
+    frb_board = [s for s in speakers if s.source == "frb_board"]
+    regional = [s for s in speakers if s.source.startswith("regional_")]
+
+    refs: list[SpeechRef] = list(_discover_frb_board(frb_board, since))
+    if regional:
+        from . import regional as regional_mod
+        refs.extend(regional_mod.discover_regional(regional, since, pw=pw))
+    return refs
+
+
+def _discover_frb_board(
+    speakers: list[Speaker], since: dt.date | None
+) -> list[SpeechRef]:
+    """Original per-speaker RSS discovery for FRB Board governors."""
     refs: list[SpeechRef] = []
     for speaker in speakers:
         if speaker.rss is None:
@@ -91,13 +123,21 @@ def discover(speakers: list[Speaker], since: dt.date | None = None) -> list[Spee
                     speaker_key=speaker.key,
                     title=entry.title,
                     pub_date=pub,
+                    source="frb_board",
                 )
             )
     return refs
 
 
-def fetch_speech(ref: SpeechRef) -> Speech:
-    """Download and parse a single speech page."""
+def fetch_speech(ref: SpeechRef, *, pw=None) -> Speech:
+    """Download and parse a single speech page.
+
+    Dispatches by `ref.source`. Regional banks delegate to fetchers/regional.py.
+    """
+    if ref.source.startswith("regional_"):
+        from . import regional as regional_mod
+        return regional_mod.fetch_regional(ref, pw=pw)
+
     resp = requests.get(
         ref.url,
         headers={"User-Agent": USER_AGENT},
@@ -174,26 +214,32 @@ def parse_article_html(
 
 
 def _extract_body_text(body_div) -> str:
-    """Extract paragraph text from the speech body.
-
-    Drops boilerplate that sits inside the same container on speech pages
-    that embed video: screen-reader-only video-player keyboard help,
-    `<script>` tags, and the `videoDetails*` host div. Also drops footnote
-    superscript markers so "1" digits don't bleed into prose.
-    """
-    for script in body_div.find_all("script"):
-        script.decompose()
+    """Extract paragraph text from an FRB speech body, including the
+    page-specific boilerplate (sr-only video help, videoDetails host div,
+    list-unstyled video keyboard hints) that lives inside the same container."""
     for sr in body_div.find_all("div", class_="sr-only"):
         sr.decompose()
     for vd in body_div.find_all("div", id=lambda v: v and v.startswith("videoDetails")):
         vd.decompose()
-    for sup in body_div.find_all("sup"):
-        sup.decompose()
     for ul in body_div.find_all("ul", class_="list-unstyled"):
         ul.decompose()
+    return extract_paragraphs(body_div)
+
+
+def extract_paragraphs(node) -> str:
+    """Extract paragraph text from a BeautifulSoup node.
+
+    Strips `<script>`, `<style>`, and footnote `<sup>` markers so digits
+    don't bleed into prose, then joins all remaining `<p>` text with `\\n\\n`.
+    Shared by FRB and regional bank parsers.
+    """
+    for tag in node.find_all(["script", "style"]):
+        tag.decompose()
+    for sup in node.find_all("sup"):
+        sup.decompose()
 
     paragraphs: list[str] = []
-    for p in body_div.find_all("p"):
+    for p in node.find_all("p"):
         text = p.get_text(" ", strip=True)
         if text:
             paragraphs.append(text)

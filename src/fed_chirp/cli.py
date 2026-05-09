@@ -22,6 +22,7 @@ from .fetchers.federalreserve import (
     fetch_speech,
     load_speakers,
 )
+from .fetchers.regional import maybe_playwright
 from .output import dashboard as dash
 from .output import diff as diff_render
 from .output.dashboard import FuturesContext
@@ -54,19 +55,20 @@ def scan(dry_run: bool, config: Path, db_path: Path) -> None:
     speakers = load_speakers(config)
     db = Database(db_path)
 
-    speech_refs = discover(speakers)
-    new_speech = [r for r in speech_refs if not db.has_score(r.url)]
-    log.info("speeches: %d in feeds, %d new", len(speech_refs), len(new_speech))
+    with maybe_playwright(speakers) as pw:
+        speech_refs = discover(speakers, pw=pw)
+        new_speech = [r for r in speech_refs if not db.has_score(r.url)]
+        log.info("speeches: %d in feeds, %d new", len(speech_refs), len(new_speech))
 
-    fomc_refs = fomc_fetch.discover()
-    new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
-    log.info("fomc docs: %d in feeds, %d new", len(fomc_refs), len(new_fomc))
+        fomc_refs = fomc_fetch.discover()
+        new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
+        log.info("fomc docs: %d in feeds, %d new", len(fomc_refs), len(new_fomc))
 
-    _refresh_futures_and_calendar(db)
+        _refresh_futures_and_calendar(db)
 
-    speech_alerts = _process_speeches(new_speech, speakers, db)
-    fomc_alerts = _process_fomc(new_fomc, db)
-    _regenerate_dashboard(speakers, db)
+        speech_alerts = _process_speeches(new_speech, speakers, db, pw=pw)
+        fomc_alerts = _process_fomc(new_fomc, db)
+        _regenerate_dashboard(speakers, db)
 
     all_alerts: list = list(speech_alerts) + list(fomc_alerts)
     if all_alerts:
@@ -82,31 +84,52 @@ def scan(dry_run: bool, config: Path, db_path: Path) -> None:
 
 @cli.command()
 @click.option("--since", "since_str", required=True, help="ISO date, e.g. 2026-01-01.")
+@click.option("--only", "only_keys", multiple=True,
+              help="Restrict to one or more speaker_keys (repeatable). Skips FOMC docs.")
 @click.option("--config", type=click.Path(path_type=Path), default=DEFAULT_CONFIG)
 @click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
-def backfill(since_str: str, config: Path, db_path: Path) -> None:
+def backfill(
+    since_str: str, only_keys: tuple[str, ...], config: Path, db_path: Path
+) -> None:
     """Fetch and score every speech + FOMC doc since a given date.
 
-    Skips URLs already scored. Does NOT send emails.
+    Skips URLs already scored. Does NOT send emails. With --only, restricts
+    discovery to specific speaker_keys and skips the FOMC pipeline.
     """
     since_date = dt.date.fromisoformat(since_str)
     speakers = load_speakers(config)
     db = Database(db_path)
 
-    speech_refs = discover(speakers, since=since_date)
-    new_speech = [r for r in speech_refs if not db.has_score(r.url)]
-    log.info("backfill speeches since %s: %d in feeds, %d to process",
-             since_date, len(speech_refs), len(new_speech))
+    if only_keys:
+        wanted = set(only_keys)
+        unknown = wanted - {sp.key for sp in speakers}
+        if unknown:
+            raise click.ClickException(f"Unknown speaker_key(s): {sorted(unknown)}")
+        speakers = [sp for sp in speakers if sp.key in wanted]
+        log.info("backfill restricted to: %s", sorted(wanted))
 
-    fomc_refs = fomc_fetch.discover(since=since_date)
-    new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
-    log.info("backfill fomc docs since %s: %d in feeds, %d to process",
-             since_date, len(fomc_refs), len(new_fomc))
+    with maybe_playwright(speakers) as pw:
+        speech_refs = discover(speakers, since=since_date, pw=pw)
+        new_speech = [r for r in speech_refs if not db.has_score(r.url)]
+        log.info("backfill speeches since %s: %d in feeds, %d to process",
+                 since_date, len(speech_refs), len(new_speech))
 
-    _refresh_futures_and_calendar(db)
-    _process_speeches(new_speech, speakers, db, suppress_alerts=True)
-    _process_fomc(new_fomc, db, suppress_alerts=True)
-    _regenerate_dashboard(speakers, db)
+        if not only_keys:
+            fomc_refs = fomc_fetch.discover(since=since_date)
+            new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
+            log.info("backfill fomc docs since %s: %d in feeds, %d to process",
+                     since_date, len(fomc_refs), len(new_fomc))
+            _refresh_futures_and_calendar(db)
+        else:
+            new_fomc = []
+
+        _process_speeches(new_speech, speakers, db, suppress_alerts=True, pw=pw)
+        _process_fomc(new_fomc, db, suppress_alerts=True)
+
+    # Always regenerate dashboard against the FULL speaker list, not the
+    # --only filtered subset, so the dashboard never loses rows.
+    full_speakers = load_speakers(config)
+    _regenerate_dashboard(full_speakers, db)
 
 
 @cli.command()
@@ -180,8 +203,12 @@ def score_one(url: str, config: Path, db_path: Path) -> None:
     if speaker is None:
         raise click.ClickException(f"Could not resolve speaker from URL: {url}")
 
-    ref = SpeechRef(url=url, speaker_key=speaker.key, title="", pub_date=dt.date.today())
-    speech = fetch_speech(ref)
+    ref = SpeechRef(
+        url=url, speaker_key=speaker.key, title="",
+        pub_date=dt.date.today(), source=speaker.source,
+    )
+    with maybe_playwright([speaker]) as pw:
+        speech = fetch_speech(ref, pw=pw)
     db.insert_speech(StoredSpeech(
         url=speech.url,
         speaker_key=speech.speaker_key,
@@ -344,6 +371,7 @@ def _process_speeches(
     db: Database,
     *,
     suppress_alerts: bool = False,
+    pw=None,
 ) -> list[AlertItem]:
     by_key = {sp.key: sp for sp in speakers}
     alerts: list[AlertItem] = []
@@ -354,7 +382,7 @@ def _process_speeches(
             log.warning("unknown speaker_key %s on %s; skipping", ref.speaker_key, ref.url)
             continue
         try:
-            speech = fetch_speech(ref)
+            speech = fetch_speech(ref, pw=pw)
         except Exception as exc:
             log.exception("fetch failed: %s — %s", ref.url, exc)
             continue
@@ -584,17 +612,38 @@ def _refresh_futures_and_calendar(db: Database) -> None:
         log.exception("futures fetch failed: %s", exc)
 
 
+_REGIONAL_HOSTS: dict[str, str] = {
+    "atlantafed.org":         "atlanta_bostic",
+    "bostonfed.org":          "boston_collins",
+    "chicagofed.org":         "chicago_goolsbee",
+    "clevelandfed.org":       "cleveland_hammack",
+    "dallasfed.org":          "dallas_logan",
+    "kansascityfed.org":      "kc_schmid",
+    "minneapolisfed.org":     "mpls_kashkari",
+    "newyorkfed.org":         "ny_williams",
+    "philadelphiafed.org":    "philly_paulson",
+    "richmondfed.org":        "richmond_barkin",
+    "stlouisfed.org":         "stl_musalem",
+    "frbsf.org":              "sf_daly",
+}
+
+
 def _resolve_speaker_from_url(url: str, speakers: list[Speaker]) -> Speaker | None:
-    """URLs follow /newsevents/speech/<lastname><yyyymmdd><letter>.htm.
-    Match the path slug against each speaker's aliases (case-insensitive).
+    """For FRB Board URLs (/newsevents/speech/<lastname>...) match aliases.
+    For regional bank URLs, match by hostname.
     """
     lower = url.lower()
     for sp in speakers:
-        if sp.key == fomc_fetch.FOMC_SPEAKER_KEY:
+        if sp.source != "frb_board":
             continue
         for alias in sp.aliases:
             if f"/speech/{alias}" in lower:
                 return sp
+
+    by_key = {sp.key: sp for sp in speakers}
+    for host, key in _REGIONAL_HOSTS.items():
+        if host in lower:
+            return by_key.get(key)
     return None
 
 

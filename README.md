@@ -5,6 +5,7 @@ Personal monitor of Federal Reserve communications. Scrapes Board governor speec
 ## What it covers
 
 - **Board governor speeches** — all 7 sitting governors (Powell, Jefferson, Bowman, Barr, Cook, Miran, Waller), discovered via per-speaker RSS feeds on federalreserve.gov.
+- **Regional Fed bank presidents** — all 12 (Williams/NY, Daly/SF, Goolsbee/Chicago, Kashkari/Mpls, Bostic/Atlanta, Logan/Dallas, Hammack/Cleveland, Schmid/KC, Collins/Boston, Paulson/Philly, Barkin/Richmond, Musalem/St. Louis), each with their own bank-specific scraper (RSS, HTML index, or headless Chromium depending on what the bank publishes).
 - **FOMC statements** — the canonical post-meeting policy text (~8/yr).
 - **FOMC minutes** — the deliberation record released ~3 weeks after each meeting.
 - **Powell press conferences** — same-day Q&A transcripts (PDF, parsed via `pypdf`).
@@ -30,6 +31,13 @@ Personal monitor of Federal Reserve communications. Scrapes Board governor speec
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
+playwright install chromium    # one-time: 4 of the 12 regional banks (Chicago,
+                               # Cleveland, KC, Dallas) plus St. Louis and a
+                               # couple others render their speech listings
+                               # client-side, so we use headless Chrome to
+                               # extract them. PlaywrightContext prefers your
+                               # installed Chrome, falling back to the bundled
+                               # chromium-headless-shell.
 cp .env.example .env   # fill in ANTHROPIC_API_KEY, GMAIL_APP_PASSWORD, etc.
 ```
 
@@ -38,6 +46,7 @@ cp .env.example .env   # fill in ANTHROPIC_API_KEY, GMAIL_APP_PASSWORD, etc.
 ```bash
 fed-chirp scan                          # cron entry: discover speeches + FOMC docs, score, alert
 fed-chirp backfill --since 2026-01-01   # one-time bulk fetch of everything since date
+fed-chirp backfill --since 2025-11-08 --only ny_williams   # restrict to one bank
 fed-chirp dashboard                     # regenerate dashboard/index.html from existing data
 fed-chirp diff <statement-url>          # word-diff vs prior statement + auto-generated notes
 fed-chirp annotate-diffs                # backfill diff notes for any statements missing them
@@ -57,7 +66,6 @@ Steady-state Claude API spend is roughly **$5-10/year**: dominated by speech bod
 
 ## Roadmap
 
-- Regional Fed bank presidents (Williams, Daly, Kashkari, Bostic, Goolsbee, Logan, etc.) — broadens to the full FOMC voting voice base.
-- Fed funds futures comparison — derive market-implied rate path and surface "is the Fed saying something different from what's priced in?"
 - SEP / dot-plot tracking — quarterly numeric projections.
 - FRASER historical backfill — pre-RSS speeches for longer baselines.
+- Regional bank coverage gaps — Chicago has no public archive (only the latest speech is reachable via the homepage); some St. Louis & Mpls "remarks" pages are short Q&A descriptions rather than full transcripts.
