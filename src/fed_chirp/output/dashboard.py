@@ -218,7 +218,7 @@ def _group_by_meeting(fomc_scores: list[StoredScore]) -> list[_Meeting]:
         elif s.doc_type == "fomc_minutes":
             m.minutes = s
 
-    meetings = list(by_date.values())
+    meetings = [m for m in by_date.values() if m.statement or m.presser]
     meetings.sort(key=lambda m: m.meeting_date, reverse=True)
     return meetings
 
@@ -833,6 +833,9 @@ _PAGE = """<!doctype html>
   body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
          margin: 2rem auto; max-width: 1100px; padding: 0 1rem; color: #222; }}
   h1 {{ margin-bottom: 0.2rem; }}
+  h1 .beta-tag {{ font-size: 0.275em; font-weight: 500; color: #999;
+                 vertical-align: middle; margin-left: 0.4rem;
+                 text-transform: uppercase; letter-spacing: 0.05em; }}
   .meta {{ color: #777; font-size: 0.9rem; margin-bottom: 1.5rem; }}
   table {{ width: 100%; border-collapse: collapse; margin: 1rem 0 2rem; }}
   th, td {{ padding: 0.5rem 0.6rem; text-align: left; border-bottom: 1px solid #eee;
@@ -884,7 +887,7 @@ _PAGE = """<!doctype html>
 </style>
 </head>
 <body>
-<h1>Fed Chirp</h1>
+<h1>Fed Chirp <span class="beta-tag">beta</span></h1>
 <div class="meta">Last regenerated <time id="regen-time" datetime="{now_iso}">{now_fallback}</time> &middot; {total} speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
