@@ -214,7 +214,7 @@
 </head>
 <body>
 <h1>Fed Chirp <span class="beta-tag">beta</span></h1>
-<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T23:32:39+00:00">May 9, 2026, 11:32 PM UTC</time> &middot; 417 speeches scored</div>
+<div class="meta">Last regenerated <time id="regen-time" datetime="2026-05-09T23:42:59+00:00">May 9, 2026, 11:42 PM UTC</time> &middot; 417 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -1224,6 +1224,21 @@
   var opts = { year: 'numeric', month: 'short', day: 'numeric',
                hour: 'numeric', minute: '2-digit', timeZoneName: 'short' };
   el.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
+})();
+
+// Auto-collapse the section nav after a link is clicked. On mobile this
+// drops the expanded list back to a ~38px "Sections ▾" strip so it
+// stops blocking the data the user just navigated to. On desktop the
+// summary is hidden and the list is always shown via CSS, so toggling
+// the open attribute has no visible effect — safe to do unconditionally.
+(function () {
+  var links = document.querySelectorAll('.page-nav-list a');
+  links.forEach(function (a) {
+    a.addEventListener('click', function () {
+      var details = a.closest('details');
+      if (details) details.removeAttribute('open');
+    });
+  });
 })();
 </script>
 </body>

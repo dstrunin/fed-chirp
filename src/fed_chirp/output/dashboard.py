@@ -1372,6 +1372,21 @@ _PAGE = """<!doctype html>
                hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }};
   el.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
 }})();
+
+// Auto-collapse the section nav after a link is clicked. On mobile this
+// drops the expanded list back to a ~38px "Sections ▾" strip so it
+// stops blocking the data the user just navigated to. On desktop the
+// summary is hidden and the list is always shown via CSS, so toggling
+// the open attribute has no visible effect — safe to do unconditionally.
+(function () {{
+  var links = document.querySelectorAll('.page-nav-list a');
+  links.forEach(function (a) {{
+    a.addEventListener('click', function () {{
+      var details = a.closest('details');
+      if (details) details.removeAttribute('open');
+    }});
+  }});
+}})();
 </script>
 </body>
 </html>
