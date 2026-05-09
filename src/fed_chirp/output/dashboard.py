@@ -507,8 +507,15 @@ def _fomc_pulse(fomc_scores: list[StoredScore]) -> str:
 _REACTION_TICKERS: tuple[tuple[str, str], ...] = (
     ("ES=F", "S&P (ES)"),
     ("NQ=F", "Nasdaq (NQ)"),
-    ("ZT=F", "2y T-Note (ZT)"),
+    ("ZT=F", "2y yield (Δbp)"),
 )
+
+# Approximate duration of the front-month ZT futures contract; used to
+# back out a rough yield change from the price return. The actual contract
+# has cheapest-to-deliver complications, but for sign and approximate
+# magnitude on a single FOMC day division by ~2 is fine.
+_ZT_DURATION = 2.0
+_YIELD_TICKERS: frozenset[str] = frozenset({"ZT=F"})
 
 
 def _fmt_pct_cell(pct: float | None, vol: float | None) -> str:
@@ -526,6 +533,41 @@ def _fmt_pct_cell(pct: float | None, vol: float | None) -> str:
     if vol is not None and vol > 0:
         body += f'<span class="vol">σ{vol:.1f}</span>'
     return body
+
+
+def _fmt_yield_cell(pct: float | None, vol: float | None,
+                     duration: float = _ZT_DURATION) -> str:
+    """Render an "+3.5 bp σ12" cell for a bond-futures ticker.
+
+    Converts price % change to approximate yield change in basis points
+    via -pct * 100 / duration (price moves inversely to yield). Sign is
+    flipped so positive bp = hawkish, aligned with the rest of the
+    dashboard's polarity convention.
+    """
+    if pct is None:
+        return '<span class="muted">—</span>'
+    bp = -pct * 100.0 / duration
+    if abs(bp) < 0.5:
+        cls = "flat"
+    elif bp > 0:
+        cls = "hawk"   # yields up = hawkish
+    else:
+        cls = "dove"   # yields down = dovish
+    sign = "+" if bp > 0 else ("−" if bp < 0 else "")
+    body = f'<span class="{cls}">{sign}{abs(bp):.1f} bp</span>'
+    if vol is not None and vol > 0:
+        # Realized vol is annualized % of price; convert to bp annualized too.
+        bp_vol = vol * 100.0 / duration
+        body += f'<span class="vol">σ{bp_vol:.0f}</span>'
+    return body
+
+
+def _fmt_reaction_cell(ticker: str, pct: float | None, vol: float | None) -> str:
+    """Dispatch by ticker: equity tickers show price %, bond tickers show
+    approximate yield Δ in bp (sign-flipped, hawk/dove color)."""
+    if ticker in _YIELD_TICKERS:
+        return _fmt_yield_cell(pct, vol)
+    return _fmt_pct_cell(pct, vol)
 
 
 def _market_reaction_section(reactions: list[MarketReaction]) -> str:
@@ -556,7 +598,7 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
                 r = per_ticker.get(ticker)
                 pct = getattr(r, f"{prefix}_pct_change", None) if r else None
                 vol = getattr(r, f"{prefix}_realized_vol", None) if r else None
-                cell = _fmt_pct_cell(pct, vol)
+                cell = _fmt_reaction_cell(ticker, pct, vol)
                 # Compact data-label for the mobile card layout — desktop hides
                 # data-labels via the @media query so this is mobile-only text.
                 short_ticker = ticker_label.split()[0]  # "S&P" / "Nasdaq"
@@ -572,20 +614,29 @@ def _market_reaction_section(reactions: list[MarketReaction]) -> str:
         rows.append("<tr>" + meeting_td + "".join(tds) + "</tr>")
 
     body = "\n".join(rows)
+    n_tickers = len(_REACTION_TICKERS)
     ticker_th = "".join(f"<th>{html.escape(label)}</th>" for _, label in _REACTION_TICKERS)
     return f"""
     <table class="reactions cards">
       <thead>
         <tr>
           <th class="meeting" rowspan="2">Meeting</th>
-          <th class="group" colspan="2">Statement window<br><span class="muted">14:00→14:30 ET</span></th>
-          <th class="group" colspan="2">Same-day close<br><span class="muted">14:30→16:00 ET</span></th>
-          <th class="group" colspan="2">Next-day close<br><span class="muted">→ next 16:00 ET</span></th>
+          <th class="group" colspan="{n_tickers}">Statement window<br><span class="muted">14:00→14:30 ET</span></th>
+          <th class="group" colspan="{n_tickers}">Same-day close<br><span class="muted">14:30→16:00 ET</span></th>
+          <th class="group" colspan="{n_tickers}">Next-day close<br><span class="muted">→ next 16:00 ET</span></th>
         </tr>
         <tr>{ticker_th}{ticker_th}{ticker_th}</tr>
       </thead>
       <tbody>{body}</tbody>
     </table>
+    <p class="meta">
+      Equity tickers (ES, NQ) show price % change with annualized realized vol σ.
+      ZT shows approximate <strong>2-year yield Δ in basis points</strong>,
+      derived from the futures price return via duration ≈&nbsp;{_ZT_DURATION:.1f}
+      (rough; ignores cheapest-to-deliver). Sign-flipped so
+      <span class="hawk">positive bp = hawkish</span>,
+      <span class="dove">negative bp = dovish</span>.
+    </p>
     """
 
 
