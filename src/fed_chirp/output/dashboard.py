@@ -19,6 +19,7 @@ from pathlib import Path
 from ..analysis.deltas import WINDOW_DAYS
 from ..analysis import divergence as divergence_analysis
 from ..analysis import futures as futures_analysis
+from ..analysis.health import StaleSpeaker
 from ..fetchers.federalreserve import Speaker
 from ..fetchers.fomc import (
     DOC_MINUTES,
@@ -59,6 +60,7 @@ def render(
     out_path: Path,
     futures_ctx: FuturesContext | None = None,
     reactions: list[MarketReaction] | None = None,
+    stale: list[StaleSpeaker] | None = None,
 ) -> None:
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
@@ -71,7 +73,9 @@ def render(
 
     governor_speakers = [sp for sp in speakers if sp.key != FOMC_SPEAKER_KEY]
 
-    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_utc = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    now_iso = now_utc.isoformat()
+    now_fallback = now_utc.strftime("%b %-d, %Y, %-I:%M %p UTC")
     rows_html = "\n".join(
         _speaker_row(sp, by_speaker.get(sp.key, [])) for sp in governor_speakers
     )
@@ -82,11 +86,13 @@ def render(
     recent_html = _recent_table(speakers, speech_scores[:30])
     futures_html = _market_implied_section(futures_ctx, meetings)
     divergence_html = _committee_divergence_section(speakers, scores)
+    health_html = _coverage_health_section(stale or [])
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         _PAGE.format(
-            now=now,
+            now_iso=now_iso,
+            now_fallback=now_fallback,
             total=len(scores),
             meetings_html=meetings_html,
             fomc_html=fomc_html,
@@ -95,9 +101,47 @@ def render(
             divergence_html=divergence_html,
             speakers_html=rows_html,
             recent_html=recent_html,
+            health_html=health_html,
         ),
         encoding="utf-8",
     )
+
+
+def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
+    if not stale:
+        return ""
+    rows = []
+    for s in stale:
+        if s.last_speech_date is None:
+            last_str = "never"
+            silent_str = "&mdash;"
+        else:
+            last_str = s.last_speech_date.isoformat()
+            silent_str = f"{s.days_silent} days"
+        rows.append(
+            f"""<tr>
+              <td>{html.escape(s.speaker.name)}</td>
+              <td class="region">{html.escape(s.speaker.region)}</td>
+              <td>{last_str}</td>
+              <td class="muted">{silent_str}</td>
+            </tr>"""
+        )
+    return f"""
+    <section>
+      <h2>Coverage health</h2>
+      <p class="muted">
+        Speakers whose latest stored speech is more than 60 days old. Could
+        mean the scraper broke or just that the speaker hasn't published a
+        transcript-archived speech in a while (TV/podcast appearances are
+        intentionally excluded).
+      </p>
+      <table class="recent">
+        <thead>
+          <tr><th>Speaker</th><th>Region</th><th>Last speech</th><th>Silent for</th></tr>
+        </thead>
+        <tbody>{"".join(rows)}</tbody>
+      </table>
+    </section>"""
 
 
 def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
@@ -220,7 +264,7 @@ def _group_by_meeting(fomc_scores: list[StoredScore]) -> list[_Meeting]:
         elif s.doc_type == "fomc_minutes":
             m.minutes = s
 
-    meetings = list(by_date.values())
+    meetings = [m for m in by_date.values() if m.statement or m.presser]
     meetings.sort(key=lambda m: m.meeting_date, reverse=True)
     return meetings
 
@@ -909,11 +953,16 @@ _PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Fed Chirp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fed Chirp — Hawkish/Dovish Tone Tracker for Fed Speeches &amp; FOMC</title>
+<meta name="description" content="Daily-updated hawkish/dovish tone scores for Federal Reserve Board governor speeches, FOMC statements, minutes, and press conferences."/>
 <style>
   body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
          margin: 2rem auto; max-width: 1100px; padding: 0 1rem; color: #222; }}
   h1 {{ margin-bottom: 0.2rem; }}
+  h1 .beta-tag {{ font-size: 0.275em; font-weight: 500; color: #999;
+                 vertical-align: middle; margin-left: 0.4rem;
+                 text-transform: uppercase; letter-spacing: 0.05em; }}
   .meta {{ color: #777; font-size: 0.9rem; margin-bottom: 1.5rem; }}
   table {{ width: 100%; border-collapse: collapse; margin: 1rem 0 2rem; }}
   th, td {{ padding: 0.5rem 0.6rem; text-align: left; border-bottom: 1px solid #eee;
@@ -969,16 +1018,27 @@ _PAGE = """<!doctype html>
   .camp-name {{ flex: 1; color: #222; }}
   .legend {{ font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }}
   .legend span {{ font-weight: 600; }}
+  .about {{ color: #555; font-size: 0.92rem; line-height: 1.5;
+           margin: 0 0 1.5rem; max-width: 760px; }}
+  .about strong {{ color: #222; }}
 </style>
 </head>
 <body>
-<h1>Fed Chirp</h1>
-<div class="meta">Last regenerated {now} &middot; {total} speeches scored</div>
+<h1>Fed Chirp <span class="beta-tag">beta</span></h1>
+<div class="meta">Last regenerated <time id="regen-time" datetime="{now_iso}">{now_fallback}</time> &middot; {total} speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
   <span class="hawk">+2 hawkish</span>
 </div>
+<p class="about">
+  <strong>FedChirp</strong> tracks public speeches, FOMC statements, minutes, and Powell
+  press-conference transcripts from the seven Federal Reserve Board governors and twelve
+  regional bank presidents. Each document is scored on a −2 (dovish) to +2 (hawkish) scale
+  by Claude against a fixed rubric, building a longitudinal view of every speaker's tone
+  and the committee's collective stance. Scrapers run every weekday evening; alerts fire
+  when a speaker's score drifts meaningfully from their 90-day baseline.
+</p>
 
 <h2>FOMC pulse</h2>
 {meetings_html}
@@ -1001,6 +1061,21 @@ _PAGE = """<!doctype html>
 {divergence_html}
 
 <h2>Governors and presidents</h2>
+<p class="meta">
+  Each row is one Federal Reserve speaker. Speeches by the seven
+  <strong>Board governors</strong> are pulled from their per-speaker RSS feeds on
+  <a href="https://www.federalreserve.gov" target="_blank" rel="noopener">federalreserve.gov</a>;
+  speeches by the twelve <strong>regional bank presidents</strong> are scraped from each
+  reserve bank's own website (NY Fed, SF Fed, Atlanta Fed, etc.).
+  <strong>90d mean</strong> is the average score across all of that speaker's speeches in
+  the trailing 90 days. <strong>Last 30 speeches</strong> is a sparkline of their up-to-30
+  most recent speech scores, oldest&nbsp;&rarr;&nbsp;newest, on the &minus;2&hellip;+2 scale.
+  <strong>Most recent</strong> shows the latest speech's score and date plus the speaker's
+  all-time speech count.
+  Coverage depends on each upstream source: a few regional banks (notably the Chicago Fed)
+  publish limited speech archives, so a thin row usually reflects what that bank posts
+  publicly rather than how often the president actually speaks.
+</p>
 <table>
   <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
              <th>Last 30 speeches</th><th>Most recent</th></tr></thead>
@@ -1010,6 +1085,19 @@ _PAGE = """<!doctype html>
 <h2>Recent speeches</h2>
 {recent_html}
 
+{health_html}
+
+<script>
+(function () {{
+  var el = document.getElementById('regen-time');
+  if (!el) return;
+  var d = new Date(el.getAttribute('datetime'));
+  if (isNaN(d)) return;
+  var opts = {{ year: 'numeric', month: 'short', day: 'numeric',
+               hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }};
+  el.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
+}})();
+</script>
 </body>
 </html>
 """
