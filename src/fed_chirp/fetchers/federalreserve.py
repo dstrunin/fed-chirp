@@ -32,6 +32,7 @@ class Speaker:
     region: str = "Board"           # "Board", "Boston", "New York", ... — dashboard column
     source: str = "frb_board"       # "frb_board" | "fomc" | "regional_rss_html" | "regional_html" | "regional_js"
     index_url: str | None = None    # listing-page URL for non-RSS regionals
+    tenure_start: dt.date | None = None  # drop discovered speeches dated before this
 
 
 @dataclass
@@ -68,9 +69,18 @@ def load_speakers(config_path: str | Path) -> list[Speaker]:
             region=s.get("region", "Board"),
             source=s.get("source", "frb_board"),
             index_url=s.get("index_url"),
+            tenure_start=_coerce_date(s.get("tenure_start")),
         )
         for s in raw["speakers"]
     ]
+
+
+def _coerce_date(v) -> dt.date | None:
+    if v is None:
+        return None
+    if isinstance(v, dt.date):
+        return v
+    return dt.date.fromisoformat(str(v))
 
 
 def discover(

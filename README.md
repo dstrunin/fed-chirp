@@ -68,4 +68,7 @@ Steady-state Claude API spend is roughly **$5-10/year**: dominated by speech bod
 
 - SEP / dot-plot tracking — quarterly numeric projections.
 - FRASER historical backfill — pre-RSS speeches for longer baselines.
-- Regional bank coverage gaps — Chicago has no public archive (only the latest speech is reachable via the homepage); some St. Louis & Mpls "remarks" pages are short Q&A descriptions rather than full transcripts.
+- Regional bank coverage gaps:
+  - Chicago has no public archive (only the latest speech is reachable via the homepage).
+  - Some St. Louis & Mpls "remarks" pages are short Q&A descriptions rather than full transcripts.
+  - **Pagination needed** — these listings expose only a recent window, so historical coverage is shallow despite long tenures: SF Daly (only since 2024-10 vs tenure 2018-10), Atlanta Bostic (2023-06 vs 2017-06), Mpls Kashkari (2025-04 vs 2016-01), KC Schmid (2026-03 vs 2023-08). Each parser needs to walk pagination (FacetWP for SF, RSS archive for Atlanta, paginated profile for Mpls, listing pages for KC) and then a one-shot `fed-chirp backfill --since <tenure_start> --only <key>` run.
