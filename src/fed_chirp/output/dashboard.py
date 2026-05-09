@@ -1143,18 +1143,18 @@ _PAGE = """<!doctype html>
      .scroll-x wrapper is a no-op outside the mobile breakpoint. */
   div.scroll-x {{ overflow-x: visible; }}
 
-  /* Sticky in-page nav. The <details> wrapper is `open` server-side so
-     it works without JS; on desktop the <summary> is hidden and the
-     list is always shown. On mobile the @media query reveals <summary>
-     and lets the user collapse/expand. */
+  /* Sticky in-page nav. The <details> wrapper renders closed server-side;
+     desktop CSS forces .page-nav-list visible regardless of open state,
+     so the desktop view always shows the full link bar. Mobile starts
+     collapsed and toggles via the <summary>. */
   .page-nav {{
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: saturate(150%) blur(6px);
-    -webkit-backdrop-filter: saturate(150%) blur(6px);
-    border-bottom: 1px solid #eee;
+    background: #1f2937;             /* dark slate; clearly system chrome */
+    color: #e5e7eb;
+    border-bottom: 1px solid #111827;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     margin: 0 -1rem 1.5rem;
     padding: 0;
   }}
@@ -1163,18 +1163,22 @@ _PAGE = """<!doctype html>
     display: none;  /* hidden on desktop; shown by @media at <=640px */
     cursor: pointer;
     list-style: none;
-    padding: 0.55rem 1rem;
-    font-size: 0.92rem;
-    color: #555;
     user-select: none;
+    color: #f3f4f6;
   }}
   .page-nav summary::-webkit-details-marker {{ display: none; }}
-  .page-nav summary::after {{ content: " ▾"; color: #999; }}
-  .page-nav details[open] summary::after {{ content: " ▴"; }}
+  .page-nav .page-nav-summary-text {{ font-weight: 600; }}
+  .page-nav summary::after {{
+    content: " ▾";
+    color: #9ca3af;
+    margin-left: 0.4rem;
+    font-weight: 600;
+  }}
+  .page-nav details[open] summary::after {{ content: " ▴"; color: #f3f4f6; }}
   .page-nav-list {{
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem 1.1rem;
+    gap: 0.4rem 1.3rem;
     list-style: none;
     margin: 0;
     padding: 0.55rem 1rem;
@@ -1182,14 +1186,14 @@ _PAGE = """<!doctype html>
   }}
   .page-nav-list li {{ margin: 0; }}
   .page-nav-list a {{
-    color: #555;
+    color: #e5e7eb;
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: color 120ms ease, border-color 120ms ease;
   }}
   .page-nav-list a:hover {{
-    color: #1f6feb;
-    border-bottom-color: #1f6feb;
+    color: #93c5fd;                  /* light blue against dark bg */
+    border-bottom-color: #93c5fd;
   }}
 
   /* Anchored scrolls land below the sticky bar instead of under it.
@@ -1263,20 +1267,34 @@ _PAGE = """<!doctype html>
     /* Rates table values can wrap onto a second line on a narrow screen. */
     table.rates-table td {{ font-size: 0.92rem; }}
 
-    /* Sticky nav collapses into a single-row "Sections ▾" expandable. */
+    /* Sticky nav collapses into a single-row "Sections ▾" tap-target. */
     .page-nav {{ margin-left: -0.6rem; margin-right: -0.6rem; }}
-    .page-nav summary {{ display: block; padding: 0.5rem 0.6rem; }}
+    .page-nav summary {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+    }}
     .page-nav details:not([open]) .page-nav-list {{ display: none; }}
     .page-nav details[open] .page-nav-list {{
       flex-direction: column;
-      gap: 0.25rem;
-      padding: 0.2rem 0.6rem 0.6rem;
-      border-top: 1px solid #eee;
+      gap: 0;
+      padding: 0;
+      border-top: 1px solid #374151;
     }}
-    .page-nav-list a {{ padding: 0.3rem 0; display: inline-block; }}
+    .page-nav-list li {{ border-bottom: 1px solid #374151; }}
+    .page-nav-list li:last-child {{ border-bottom: none; }}
+    .page-nav-list a {{
+      display: block;
+      padding: 0.7rem 1rem;
+      font-size: 0.98rem;
+      border-bottom: none;
+    }}
+    .page-nav-list a:hover {{ border-bottom: none; background: #374151; }}
 
-    /* Anchored scrolls: sticky nav is shorter on mobile when collapsed. */
-    h2 {{ scroll-margin-top: 52px; }}
+    /* Anchored scrolls: sticky nav is ~55px tall on mobile when collapsed. */
+    h2 {{ scroll-margin-top: 64px; }}
   }}
 </style>
 </head>
@@ -1298,8 +1316,8 @@ _PAGE = """<!doctype html>
 </p>
 
 <nav class="page-nav" aria-label="Sections">
-  <details class="page-nav-collapse" open>
-    <summary>Sections</summary>
+  <details class="page-nav-collapse">
+    <summary><span class="page-nav-summary-text">Sections</span></summary>
     <ul class="page-nav-list">
       <li><a href="#fomc-pulse">FOMC pulse</a></li>
       <li><a href="#reactions">Reactions</a></li>
