@@ -1186,14 +1186,19 @@ _PAGE = """<!doctype html>
   }}
   .page-nav-list li {{ margin: 0; }}
   .page-nav-list a {{
-    color: #e5e7eb;
+    color: #d1d5db;
     text-decoration: none;
-    border-bottom: 1px solid transparent;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 0.15rem;
     transition: color 120ms ease, border-color 120ms ease;
   }}
   .page-nav-list a:hover {{
-    color: #93c5fd;                  /* light blue against dark bg */
-    border-bottom-color: #93c5fd;
+    color: #f9fafb;
+    border-bottom-color: #6b7280;
+  }}
+  .page-nav-list a.active {{
+    color: #f9fafb;
+    border-bottom-color: #93c5fd;    /* current section indicator */
   }}
 
   /* Anchored scrolls land below the sticky bar instead of under it.
@@ -1292,6 +1297,12 @@ _PAGE = """<!doctype html>
       border-bottom: none;
     }}
     .page-nav-list a:hover {{ border-bottom: none; background: #374151; }}
+    .page-nav-list a.active {{
+      background: #374151;
+      border-left: 3px solid #93c5fd;
+      padding-left: calc(1rem - 3px);
+      border-bottom: none;
+    }}
 
     /* Anchored scrolls: sticky nav is ~55px tall on mobile when collapsed. */
     h2 {{ scroll-margin-top: 64px; }}
@@ -1391,18 +1402,64 @@ _PAGE = """<!doctype html>
   el.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
 }})();
 
-// Auto-collapse the section nav after a link is clicked. On mobile this
-// drops the expanded list back to a ~38px "Sections ▾" strip so it
-// stops blocking the data the user just navigated to. On desktop the
-// summary is hidden and the list is always shown via CSS, so toggling
-// the open attribute has no visible effect — safe to do unconditionally.
+// Sync the section nav's <details> open state with the viewport so the
+// link list is always visible on desktop and collapsed by default on
+// mobile. Avoids fighting the browser's internal "hide closed-details
+// children" mechanism with CSS overrides.
+(function () {{
+  var details = document.querySelector('.page-nav details');
+  if (!details) return;
+  var mq = window.matchMedia('(max-width: 640px)');
+  function sync() {{
+    if (mq.matches) details.removeAttribute('open');
+    else details.setAttribute('open', '');
+  }}
+  sync();
+  if (mq.addEventListener) mq.addEventListener('change', sync);
+  else if (mq.addListener) mq.addListener(sync);  // older Safari
+}})();
+
+// Auto-collapse the section nav after a link is tapped on mobile.
+// Drops the expanded list back to a ~55px "Sections ▾" bar so it stops
+// blocking the section the user just navigated to. On desktop the
+// open state is forced true by the sync handler above, so the
+// click-to-collapse here is a no-op.
 (function () {{
   var links = document.querySelectorAll('.page-nav-list a');
   links.forEach(function (a) {{
     a.addEventListener('click', function () {{
       var details = a.closest('details');
-      if (details) details.removeAttribute('open');
+      if (!details) return;
+      var mq = window.matchMedia('(max-width: 640px)');
+      if (mq.matches) details.removeAttribute('open');
     }});
+  }});
+}})();
+
+// Highlight the nav link for the section currently in view. Uses
+// IntersectionObserver with a rootMargin that narrows the "active"
+// zone to the top quarter of the viewport — feels natural with the
+// sticky-nav offset. Falls back to no highlighting on browsers
+// without IntersectionObserver (very few in 2026).
+(function () {{
+  if (!('IntersectionObserver' in window)) return;
+  var byId = {{}};
+  document.querySelectorAll('.page-nav-list a[href^="#"]').forEach(function (a) {{
+    var id = a.getAttribute('href').slice(1);
+    if (document.getElementById(id)) byId[id] = a;
+  }});
+  if (Object.keys(byId).length === 0) return;
+  var observer = new IntersectionObserver(function (entries) {{
+    entries.forEach(function (e) {{
+      if (e.isIntersecting) {{
+        Object.keys(byId).forEach(function (k) {{ byId[k].classList.remove('active'); }});
+        var a = byId[e.target.id];
+        if (a) a.classList.add('active');
+      }}
+    }});
+  }}, {{ rootMargin: '-15% 0px -75% 0px', threshold: 0 }});
+  Object.keys(byId).forEach(function (id) {{
+    observer.observe(document.getElementById(id));
   }});
 }})();
 </script>
