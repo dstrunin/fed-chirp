@@ -42,13 +42,21 @@
   td.bucket-mod { background: #fff8e0; }
   td.bucket-weak { color: #888; }
   td.bucket-zero { color: #ccc; }
+  table.camps { width: 100%; margin: 0.4rem 0 1rem; }
+  table.camps td.camp-col { vertical-align: top; padding: 0.4rem 0.8rem;
+                            border: none; width: 33.3%; }
+  .camp-header { font-weight: 600; padding-bottom: 0.4rem;
+                 border-bottom: 1px solid #eee; margin-bottom: 0.4rem; font-size: 0.9rem; }
+  .camp-row { padding: 0.18rem 0; font-size: 0.92rem; display: flex;
+              justify-content: space-between; gap: 0.4rem; }
+  .camp-name { flex: 1; color: #222; }
   .legend { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
   .legend span { font-weight: 600; }
 </style>
 </head>
 <body>
 <h1>Fed Chirp</h1>
-<div class="meta">Last regenerated 2026-05-08 18:31 &middot; 807 speeches scored</div>
+<div class="meta">Last regenerated 2026-05-09 16:11 &middot; 820 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -215,11 +223,11 @@
         <table class="rates-table">
           <tbody>
             <tr><td>Effective fed funds rate (current)</td><td><strong>3.632%</strong></td></tr>
-            <tr><td>Market-implied, 6 months out</td><td><strong>3.625%</strong><span class="muted"> (−0.7 bp vs current)</span></td></tr>
-            <tr><td>Market-implied, 12 months out</td><td><strong>3.700%</strong><span class="muted"> (+6.7 bp vs current)</span></td></tr>
+            <tr><td>Market-implied, 6 months out</td><td><strong>3.620%</strong><span class="muted"> (−1.2 bp vs current)</span></td></tr>
+            <tr><td>Market-implied, 12 months out</td><td><strong>3.710%</strong><span class="muted"> (+7.7 bp vs current)</span></td></tr>
           </tbody>
         </table>
-        <p class="meta">Implied rate path (oldest → newest): <svg viewBox="0 0 220 36" width="220" height="36"><polyline fill="none" stroke="#1f6feb" stroke-width="1.5" points="4.0,21.3 20.3,22.4 36.6,23.2 52.9,24.6 69.2,24.6 85.5,24.6 101.8,22.4 118.2,20.2 134.5,19.5 150.8,17.3 167.1,15.1 183.4,12.8 199.7,11.4 216.0,12.1"/></svg></p>
+        <p class="meta">Implied rate path (oldest → newest): <svg viewBox="0 0 220 36" width="220" height="36"><polyline fill="none" stroke="#1f6feb" stroke-width="1.5" points="4.0,21.0 20.3,22.0 36.6,23.3 52.9,25.3 69.2,24.7 85.5,24.7 101.8,22.7 118.2,20.0 134.5,19.3 150.8,17.3 167.1,15.3 183.4,12.7 199.7,10.7 216.0,12.0"/></svg></p>
         
             <div class="gap-panel">
               <div class="gap-row"><span class="gap-label">Latest FOMC tone (combined):</span>
@@ -227,7 +235,7 @@
                 <span class="muted"> (meeting 2026-04-29)</span></div>
               <div class="gap-row"><span class="gap-label">Market-implied score (12m):</span>
                 <span class="score neutral">+0.06</span>
-                <span class="muted"> (+5.8 bp 12m)</span></div>
+                <span class="muted"> (+6.2 bp 12m)</span></div>
               <div class="gap-row gap-row--total"><span class="gap-label">Gap (Fed-speak − market):</span>
                 <span class="score neutral">+0.04</span>
                 <span class="muted"> — essentially aligned</span></div>
@@ -248,35 +256,72 @@
                   <td class="bucket-cell bucket-weak">6%</td><td class="bucket-cell bucket-strong">94%</td><td class="bucket-cell bucket-zero">0%</td>
                 </tr><tr>
                   <td>2026-07-29</td>
-                  <td>3.653%</td>
-                  <td class="score neutral">+3.7 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">85%</td><td class="bucket-cell bucket-weak">15%</td>
+                  <td>3.602%</td>
+                  <td class="score neutral">-1.5 bp</td>
+                  <td class="bucket-cell bucket-weak">6%</td><td class="bucket-cell bucket-strong">94%</td><td class="bucket-cell bucket-zero">0%</td>
                 </tr><tr>
                   <td>2026-09-16</td>
                   <td>3.610%</td>
-                  <td class="score neutral">+0.0 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">100%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td class="score neutral">+1.0 bp</td>
+                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">96%</td><td class="bucket-cell bucket-zero">4%</td>
                 </tr><tr>
                   <td>2026-10-28</td>
-                  <td>3.610%</td>
-                  <td class="score neutral">+0.0 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">100%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td>3.571%</td>
+                  <td class="score neutral">-3.9 bp</td>
+                  <td class="bucket-cell bucket-weak">16%</td><td class="bucket-cell bucket-strong">84%</td><td class="bucket-cell bucket-zero">0%</td>
                 </tr><tr>
                   <td>2026-12-09</td>
-                  <td>3.645%</td>
-                  <td class="score neutral">+2.0 bp</td>
-                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">92%</td><td class="bucket-cell bucket-weak">8%</td>
+                  <td>3.647%</td>
+                  <td class="score neutral">+2.7 bp</td>
+                  <td class="bucket-cell bucket-zero">0%</td><td class="bucket-cell bucket-strong">89%</td><td class="bucket-cell bucket-weak">11%</td>
                 </tr><tr>
                   <td>2027-01-27</td>
-                  <td>3.644%</td>
-                  <td class="score neutral">-0.1 bp</td>
-                  <td class="bucket-cell bucket-zero">1%</td><td class="bucket-cell bucket-strong">99%</td><td class="bucket-cell bucket-zero">0%</td>
+                  <td>3.635%</td>
+                  <td class="score neutral">-1.2 bp</td>
+                  <td class="bucket-cell bucket-zero">5%</td><td class="bucket-cell bucket-strong">95%</td><td class="bucket-cell bucket-zero">0%</td>
                 </tr></tbody>
             </table>
         <p class="meta">
           Probabilities are computed from settlement-implied per-meeting rate
           changes via the standard CME-FedWatch step-path methodology (linear
           decomposition into 25 bp buckets). Hold = 0 bp move.
+        </p>
+
+<h2>Committee divergence</h2>
+
+        <table class="rates-table">
+          <tbody>
+            <tr>
+              <td>Trailing 90-day spread (max − min)</td>
+              <td><strong>0.86</strong> <span class="score dove">↓ -1.11 vs 30d ago</span></td>
+            </tr>
+            <tr>
+              <td>Trailing 90-day stdev of speaker means</td>
+              <td>0.26</td>
+            </tr>
+            <tr>
+              <td>Speakers covered</td>
+              <td>18 / 19
+                <span class="muted">
+                  (1 had no speeches in window)
+                </span></td>
+            </tr>
+            <tr>
+              <td>Hawk pole / dove pole</td>
+              <td><span class="hawk">Neel Kashkari</span>
+                <span class="muted">vs</span>
+                <span class="dove">Christopher J. Waller</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="meta">Spread over trailing 90 days (oldest → newest): <svg viewBox="0 0 220 36" width="220" height="36"><polyline fill="none" stroke="#7f3f7f" stroke-width="1.5" points="4.0,6.3 6.4,6.3 8.7,6.3 11.1,10.7 13.4,10.7 15.8,10.7 18.1,10.7 20.5,10.7 22.8,9.5 25.2,9.5 27.6,9.5 29.9,8.4 32.3,8.4 34.6,8.4 37.0,8.4 39.3,8.4 41.7,12.1 44.0,14.5 46.4,14.5 48.8,14.5 51.1,14.5 53.5,14.5 55.8,14.5 58.2,14.5 60.5,10.4 62.9,10.4 65.2,10.4 67.6,10.4 70.0,10.4 72.3,10.4 74.7,10.4 77.0,10.4 79.4,10.4 81.7,10.4 84.1,10.4 86.4,10.4 88.8,11.7 91.2,11.7 93.5,11.7 95.9,11.7 98.2,11.7 100.6,11.7 102.9,11.7 105.3,11.7 107.6,11.7 110.0,11.7 112.4,11.7 114.7,14.4 117.1,14.4 119.4,14.4 121.8,14.4 124.1,14.4 126.5,13.6 128.8,13.6 131.2,13.6 133.6,13.6 135.9,13.6 138.3,13.6 140.6,13.6 143.0,13.6 145.3,13.6 147.7,13.6 150.0,13.6 152.4,13.6 154.8,13.6 157.1,13.6 159.5,13.6 161.8,13.6 164.2,13.6 166.5,16.4 168.9,16.4 171.2,16.4 173.6,16.4 176.0,17.2 178.3,17.2 180.7,17.2 183.0,17.2 185.4,17.2 187.7,17.2 190.1,17.2 192.4,17.2 194.8,17.2 197.2,20.0 199.5,20.0 201.9,20.0 204.2,20.0 206.6,20.0 208.9,20.0 211.3,20.0 213.6,20.0 216.0,22.6"/></svg></p>
+        <h4>Hawk / neutral / dove camps</h4>
+        <table class="camps"><tbody><tr><td class="camp-col"><div class="camp-header hawk">Hawks (>+0.3)</div><div class="camp-row"><span class="camp-name">Neel Kashkari</span><span class="score hawk">+0.80</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Jeffrey R. Schmid</span><span class="score hawk">+0.73</span><span class="muted"> n=3</span></div><div class="camp-row"><span class="camp-name">Austan D. Goolsbee</span><span class="score hawk">+0.50</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Stephen I. Miran</span><span class="score hawk">+0.50</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Lorie K. Logan</span><span class="score hawk">+0.40</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Susan M. Collins</span><span class="score hawk">+0.40</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Beth M. Hammack</span><span class="score hawk">+0.38</span><span class="muted"> n=4</span></div></td><td class="camp-col"><div class="camp-header neutral">Neutrals</div><div class="camp-row"><span class="camp-name">Michael S. Barr</span><span class="score neutral">+0.30</span><span class="muted"> n=5</span></div><div class="camp-row"><span class="camp-name">Alberto G. Musalem</span><span class="score neutral">+0.25</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Anna Paulson</span><span class="score neutral">+0.25</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Philip N. Jefferson</span><span class="score neutral">+0.15</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Michelle W. Bowman</span><span class="score neutral">+0.00</span><span class="muted"> n=8</span></div><div class="camp-row"><span class="camp-name">Lisa D. Cook</span><span class="score neutral">+0.00</span><span class="muted"> n=3</span></div><div class="camp-row"><span class="camp-name">Mary C. Daly</span><span class="score neutral">+0.00</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Thomas I. Barkin</span><span class="score neutral">+0.00</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Jerome H. Powell</span><span class="score neutral">+0.00</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">John C. Williams</span><span class="score neutral">-0.05</span><span class="muted"> n=4</span></div><div class="camp-row"><span class="camp-name">Christopher J. Waller</span><span class="score neutral">-0.06</span><span class="muted"> n=5</span></div></td><td class="camp-col"><div class="camp-header dove">Doves (<-0.3)</div><p class="muted">(none)</p></td></tr></tbody></table>
+        <p class="meta">
+          Each speaker's trailing 90-day mean places them in a camp; numbers
+          after each name are the mean and the number of speeches in the
+          window. Widening spread historically precedes dissents at the
+          next FOMC meeting.
         </p>
 
 <h2>Governors and presidents</h2>
@@ -397,10 +442,10 @@
           <td class="region">Boston</td>
           <td class="role">President</td>
           <td class="score hawk">+0.40<span class="muted"> (90d, n=2)</span></td>
-          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,12.4 11.3,12.4 18.6,14.5 25.9,15.9 33.2,18.0 40.6,18.0 47.9,21.5 55.2,21.5 62.5,18.0 69.8,14.5 77.1,14.5 84.4,15.9 91.7,18.0 99.0,21.5 106.3,23.6 113.7,18.0 121.0,21.5 128.3,14.5 135.6,15.9 142.9,18.0 150.2,18.0 157.5,18.0 164.8,15.9 172.1,20.1 179.4,22.9 186.8,14.5 194.1,18.0 201.4,18.0 208.7,18.0 216.0,12.4"/></svg></td>
+          <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,12.4 11.3,14.5 18.6,15.9 25.9,18.0 33.2,18.0 40.6,18.0 47.9,21.5 55.2,21.5 62.5,18.0 69.8,14.5 77.1,14.5 84.4,15.9 91.7,18.0 99.0,21.5 106.3,23.6 113.7,18.0 121.0,21.5 128.3,14.5 135.6,15.9 142.9,18.0 150.2,18.0 157.5,18.0 164.8,15.9 172.1,20.1 179.4,22.9 186.8,14.5 194.1,18.0 201.4,18.0 208.7,18.0 216.0,12.4"/></svg></td>
           <td class="last">
             <span class="score hawk">+0.80</span>
-            <span class="muted">2026-03-06 (194 total)</span>
+            <span class="muted">2026-03-06 (207 total)</span>
           </td>
         </tr>
 
