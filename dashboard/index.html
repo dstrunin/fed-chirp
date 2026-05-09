@@ -42,13 +42,21 @@
   td.bucket-mod { background: #fff8e0; }
   td.bucket-weak { color: #888; }
   td.bucket-zero { color: #ccc; }
+  table.camps { width: 100%; margin: 0.4rem 0 1rem; }
+  table.camps td.camp-col { vertical-align: top; padding: 0.4rem 0.8rem;
+                            border: none; width: 33.3%; }
+  .camp-header { font-weight: 600; padding-bottom: 0.4rem;
+                 border-bottom: 1px solid #eee; margin-bottom: 0.4rem; font-size: 0.9rem; }
+  .camp-row { padding: 0.18rem 0; font-size: 0.92rem; display: flex;
+              justify-content: space-between; gap: 0.4rem; }
+  .camp-name { flex: 1; color: #222; }
   .legend { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
   .legend span { font-weight: 600; }
 </style>
 </head>
 <body>
 <h1>Fed Chirp</h1>
-<div class="meta">Last regenerated 2026-05-08 18:31 &middot; 807 speeches scored</div>
+<div class="meta">Last regenerated 2026-05-09 09:20 &middot; 473 speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
@@ -279,6 +287,43 @@
           decomposition into 25 bp buckets). Hold = 0 bp move.
         </p>
 
+<h2>Committee divergence</h2>
+
+        <table class="rates-table">
+          <tbody>
+            <tr>
+              <td>Trailing 90-day spread (max − min)</td>
+              <td><strong>0.86</strong> <span class="score dove">↓ -1.11 vs 30d ago</span></td>
+            </tr>
+            <tr>
+              <td>Trailing 90-day stdev of speaker means</td>
+              <td>0.26</td>
+            </tr>
+            <tr>
+              <td>Speakers covered</td>
+              <td>18 / 19
+                <span class="muted">
+                  (1 had no speeches in window)
+                </span></td>
+            </tr>
+            <tr>
+              <td>Hawk pole / dove pole</td>
+              <td><span class="hawk">Neel Kashkari</span>
+                <span class="muted">vs</span>
+                <span class="dove">Christopher J. Waller</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="meta">Spread over trailing 90 days (oldest → newest): <svg viewBox="0 0 220 36" width="220" height="36"><polyline fill="none" stroke="#7f3f7f" stroke-width="1.5" points="4.0,6.3 6.4,6.3 8.7,6.3 11.1,10.7 13.4,10.7 15.8,10.7 18.1,10.7 20.5,10.7 22.8,9.5 25.2,9.5 27.6,9.5 29.9,8.4 32.3,8.4 34.6,8.4 37.0,8.4 39.3,8.4 41.7,12.1 44.0,14.5 46.4,14.5 48.8,14.5 51.1,14.5 53.5,14.5 55.8,14.5 58.2,14.5 60.5,10.4 62.9,10.4 65.2,10.4 67.6,10.4 70.0,10.4 72.3,10.4 74.7,10.4 77.0,10.4 79.4,10.4 81.7,10.4 84.1,10.4 86.4,10.4 88.8,11.7 91.2,11.7 93.5,11.7 95.9,11.7 98.2,11.7 100.6,11.7 102.9,11.7 105.3,11.7 107.6,11.7 110.0,11.7 112.4,11.7 114.7,14.4 117.1,14.4 119.4,14.4 121.8,14.4 124.1,14.4 126.5,13.6 128.8,13.6 131.2,13.6 133.6,13.6 135.9,13.6 138.3,13.6 140.6,13.6 143.0,13.6 145.3,13.6 147.7,13.6 150.0,13.6 152.4,13.6 154.8,13.6 157.1,13.6 159.5,13.6 161.8,13.6 164.2,13.6 166.5,16.4 168.9,16.4 171.2,16.4 173.6,16.4 176.0,17.2 178.3,17.2 180.7,17.2 183.0,17.2 185.4,17.2 187.7,17.2 190.1,17.2 192.4,17.2 194.8,17.2 197.2,20.0 199.5,20.0 201.9,20.0 204.2,20.0 206.6,20.0 208.9,20.0 211.3,20.0 213.6,20.0 216.0,22.6"/></svg></p>
+        <h4>Hawk / neutral / dove camps</h4>
+        <table class="camps"><tbody><tr><td class="camp-col"><div class="camp-header hawk">Hawks (>+0.3)</div><div class="camp-row"><span class="camp-name">Neel Kashkari</span><span class="score hawk">+0.80</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Jeffrey R. Schmid</span><span class="score hawk">+0.73</span><span class="muted"> n=3</span></div><div class="camp-row"><span class="camp-name">Austan D. Goolsbee</span><span class="score hawk">+0.50</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Stephen I. Miran</span><span class="score hawk">+0.50</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Lorie K. Logan</span><span class="score hawk">+0.40</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Susan M. Collins</span><span class="score hawk">+0.40</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Beth M. Hammack</span><span class="score hawk">+0.38</span><span class="muted"> n=4</span></div></td><td class="camp-col"><div class="camp-header neutral">Neutrals</div><div class="camp-row"><span class="camp-name">Michael S. Barr</span><span class="score neutral">+0.30</span><span class="muted"> n=5</span></div><div class="camp-row"><span class="camp-name">Alberto G. Musalem</span><span class="score neutral">+0.25</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Anna Paulson</span><span class="score neutral">+0.25</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Philip N. Jefferson</span><span class="score neutral">+0.15</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Michelle W. Bowman</span><span class="score neutral">+0.00</span><span class="muted"> n=8</span></div><div class="camp-row"><span class="camp-name">Lisa D. Cook</span><span class="score neutral">+0.00</span><span class="muted"> n=3</span></div><div class="camp-row"><span class="camp-name">Mary C. Daly</span><span class="score neutral">+0.00</span><span class="muted"> n=2</span></div><div class="camp-row"><span class="camp-name">Thomas I. Barkin</span><span class="score neutral">+0.00</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">Jerome H. Powell</span><span class="score neutral">+0.00</span><span class="muted"> n=1</span></div><div class="camp-row"><span class="camp-name">John C. Williams</span><span class="score neutral">-0.05</span><span class="muted"> n=4</span></div><div class="camp-row"><span class="camp-name">Christopher J. Waller</span><span class="score neutral">-0.06</span><span class="muted"> n=5</span></div></td><td class="camp-col"><div class="camp-header dove">Doves (<-0.3)</div><p class="muted">(none)</p></td></tr></tbody></table>
+        <p class="meta">
+          Each speaker's trailing 90-day mean places them in a camp; numbers
+          after each name are the mean and the number of speeches in the
+          window. Widening spread historically precedes dissents at the
+          next FOMC meeting.
+        </p>
+
 <h2>Governors and presidents</h2>
 <table>
   <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
@@ -388,7 +433,7 @@
           <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,11.0 11.3,12.4 18.6,18.0 25.9,11.0 33.2,14.5 40.6,14.5 47.9,14.5 55.2,14.5 62.5,18.0 69.8,15.9 77.1,12.4 84.4,12.4 91.7,12.4 99.0,15.9 106.3,15.9 113.7,18.0 121.0,18.0 128.3,15.9 135.6,12.4 142.9,15.9 150.2,18.0 157.5,18.0 164.8,18.0 172.1,16.6 179.4,15.9 186.8,18.0 194.1,18.0 201.4,18.0 208.7,15.9 216.0,18.0"/></svg></td>
           <td class="last">
             <span class="score neutral">+0.00</span>
-            <span class="muted">2026-03-27 (283 total)</span>
+            <span class="muted">2026-03-27 (104 total)</span>
           </td>
         </tr>
 
@@ -400,7 +445,7 @@
           <td class="spark"><svg viewBox="0 0 220 36" width="220" height="36"><line x1="4" y1="18.0" x2="216" y2="18.0" stroke="#ddd" stroke-width="1"/><polyline fill="none" stroke="#333" stroke-width="1.5" points="4.0,12.4 11.3,12.4 18.6,14.5 25.9,15.9 33.2,18.0 40.6,18.0 47.9,21.5 55.2,21.5 62.5,18.0 69.8,14.5 77.1,14.5 84.4,15.9 91.7,18.0 99.0,21.5 106.3,23.6 113.7,18.0 121.0,21.5 128.3,14.5 135.6,15.9 142.9,18.0 150.2,18.0 157.5,18.0 164.8,15.9 172.1,20.1 179.4,22.9 186.8,14.5 194.1,18.0 201.4,18.0 208.7,18.0 216.0,12.4"/></svg></td>
           <td class="last">
             <span class="score hawk">+0.80</span>
-            <span class="muted">2026-03-06 (194 total)</span>
+            <span class="muted">2026-03-06 (39 total)</span>
           </td>
         </tr>
 
