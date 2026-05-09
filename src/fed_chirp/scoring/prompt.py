@@ -33,9 +33,15 @@ a single speech by a Federal Reserve Board governor on a continuous hawk/dove sc
   consider easing"). Prescription weighs more heavily.
 - Boilerplate ("we are committed to 2% inflation", "we will be data dependent")
   is neutral by itself. It only shifts the score when paired with prescription.
-- A speech focused entirely on a non-policy topic (financial stability, banking
-  regulation, payments, community development) without monetary-policy content
-  should score 0.0 with label "neutral" and a rationale stating that.
+- A speech focused on a non-policy *topic* (financial stability, banking
+  regulation, payments, community development) but written as substantive
+  prose IS still scoreable; score it 0.0 with label "neutral".
+- If the document has no substantive monetary-policy or economic content at
+  all — for example a "request a speaker" form, a list of website links,
+  navigation text, an empty page, or fewer than ~400 words of continuous
+  prose — DO NOT invent a score from your priors about the speaker. Return
+  {"score": null, "label": "excluded", "rationale": "<one sentence describing
+  what the content actually is>", "key_quotes": []}.
 - Be willing to score 0.0. Most speeches by most governors most of the time
   are roughly balanced. Reserve |score| > 1.5 for genuinely strong stances.
 
@@ -44,8 +50,8 @@ a single speech by a Federal Reserve Board governor on a continuous hawk/dove sc
 Return ONE JSON object and nothing else (no prose, no markdown fences):
 
 {
-  "score": <float in [-2.0, 2.0]>,
-  "label": "<dovish | neutral | hawkish>",
+  "score": <float in [-2.0, 2.0] OR null>,
+  "label": "<dovish | neutral | hawkish | excluded>",
   "rationale": "<2-3 sentence explanation of why this score, citing what
                 drove it>",
   "key_quotes": ["<short quoted phrase 1>", "<short quoted phrase 2>",
@@ -58,8 +64,9 @@ Rules for `key_quotes`:
   20 words). These are the passages most responsible for the score.
 - If the speech has no monetary-policy content, return an empty list [].
 
-`label` must agree with sign of `score`:
-  score < -0.3   -> "dovish"
+`label` must agree with `score`:
+  score is null        -> "excluded"
+  score < -0.3         -> "dovish"
   -0.3 <= score <= 0.3 -> "neutral"
-  score >  0.3   -> "hawkish"
+  score >  0.3         -> "hawkish"
 """

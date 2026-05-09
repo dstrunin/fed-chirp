@@ -21,8 +21,14 @@ dependencies = [
     "playwright>=1.45",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 fed-chirp = "fed_chirp.cli:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

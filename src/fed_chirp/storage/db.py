@@ -3,11 +3,25 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def content_hash(body: str) -> str:
+    """SHA-256 of a normalized speech body. Lowercased, whitespace-collapsed.
+
+    Used as the dedup key alongside (speaker_key, speech_date) so that the
+    same speech served under two URL slugs is only stored once.
+    """
+    norm = _WHITESPACE_RE.sub(" ", body.strip().lower())
+    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS speeches (
@@ -115,6 +129,12 @@ class Database:
             }
             if "diff_notes" not in score_cols:
                 conn.execute("ALTER TABLE speech_scores ADD COLUMN diff_notes TEXT")
+            if "content_hash" not in cols:
+                conn.execute("ALTER TABLE speeches ADD COLUMN content_hash TEXT")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_speeches_dedup "
+                "ON speeches(speaker_key, speech_date, content_hash)"
+            )
 
     @contextmanager
     def connect(self):
@@ -133,12 +153,35 @@ class Database:
             row = conn.execute("SELECT 1 FROM speeches WHERE url = ?", (url,)).fetchone()
             return row is not None
 
-    def insert_speech(self, speech: StoredSpeech) -> None:
+    def insert_speech(self, speech: StoredSpeech) -> str:
+        """Insert speech; return the canonical URL stored.
+
+        If a row with the same (speaker_key, speech_date, content_hash) already
+        exists under a different URL, no new row is written and that existing
+        URL is returned. The caller should use the returned URL for downstream
+        score insertion and baseline lookups.
+        """
+        h = content_hash(speech.body)
         with self.connect() as conn:
+            existing = conn.execute(
+                """SELECT url FROM speeches
+                   WHERE speaker_key = ? AND speech_date = ?
+                     AND content_hash = ? AND url != ?
+                   LIMIT 1""",
+                (
+                    speech.speaker_key,
+                    speech.speech_date.isoformat(),
+                    h,
+                    speech.url,
+                ),
+            ).fetchone()
+            if existing is not None:
+                return existing["url"]
             conn.execute(
                 """INSERT OR REPLACE INTO speeches
-                   (url, speaker_key, speech_date, title, location, body, fetched_at, doc_type)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (url, speaker_key, speech_date, title, location, body,
+                    fetched_at, doc_type, content_hash)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     speech.url,
                     speech.speaker_key,
@@ -148,8 +191,10 @@ class Database:
                     speech.body,
                     dt.datetime.now(dt.timezone.utc).isoformat(),
                     speech.doc_type,
+                    h,
                 ),
             )
+        return speech.url
 
     # ---- scores ----
 
@@ -160,16 +205,26 @@ class Database:
             ).fetchone()
             return row is not None
 
+    def delete_score(self, url: str) -> bool:
+        """Drop any score row for `url`. Returns True if a row was deleted."""
+        with self.connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM speech_scores WHERE speech_url = ?", (url,),
+            )
+            return cur.rowcount > 0
+
     def insert_score(
         self,
         speech_url: str,
-        score: float,
+        score: float | None,
         label: str,
         rationale: str,
         key_quotes: list[str],
         model: str,
         scored_at: dt.datetime,
     ) -> None:
+        if score is None:
+            return  # excluded; caller is responsible for logging
         with self.connect() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO speech_scores
