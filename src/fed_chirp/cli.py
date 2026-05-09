@@ -27,6 +27,7 @@ from .fetchers.federalreserve import (
     load_speakers,
 )
 from .fetchers.regional import maybe_playwright
+from .fetchers.youtube import CaptionsUnavailable
 from .output import dashboard as dash
 from .output import diff as diff_render
 from .output.dashboard import FuturesContext
@@ -500,6 +501,9 @@ def _process_speeches(
             continue
         try:
             speech = fetch_speech(ref, pw=pw)
+        except CaptionsUnavailable as exc:
+            log.info("youtube captions unavailable: %s — %s", ref.url, exc)
+            continue
         except Exception as exc:
             log.exception("fetch failed: %s — %s", ref.url, exc)
             continue

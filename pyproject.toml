@@ -19,6 +19,7 @@ dependencies = [
     "pypdf>=4.0",
     "yfinance>=0.2.40",
     "playwright>=1.45",
+    "youtube-transcript-api>=1.2",
 ]
 
 [project.optional-dependencies]
