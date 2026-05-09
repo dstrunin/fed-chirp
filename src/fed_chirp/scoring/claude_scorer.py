@@ -24,7 +24,7 @@ RETRY_BASE_DELAY = 2.0
 
 @dataclass
 class ScoreResult:
-    score: float
+    score: float | None
     label: str
     rationale: str
     key_quotes: list[str]
@@ -83,8 +83,10 @@ def score_speech(
 
     raw = "".join(block.text for block in response.content if block.type == "text").strip()
     parsed = _extract_json(raw)
+    raw_score = parsed.get("score")
+    score: float | None = None if raw_score is None else float(raw_score)
     return ScoreResult(
-        score=float(parsed["score"]),
+        score=score,
         label=str(parsed["label"]),
         rationale=str(parsed["rationale"]),
         key_quotes=list(parsed.get("key_quotes", [])),

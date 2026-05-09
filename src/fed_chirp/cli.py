@@ -28,9 +28,10 @@ from .output import dashboard as dash
 from .output import diff as diff_render
 from .output.dashboard import FuturesContext
 from .output.email_report import AlertItem, FomcAlertItem, send_alerts
+from .scoring import speech_filter
 from .scoring.claude_scorer import score_speech
 from .scoring.diff_notes import annotate_statement_diff
-from .storage.db import Database, StoredSpeech
+from .storage.db import Database, StoredSpeech, content_hash
 from .utils.log import get_logger
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -181,6 +182,13 @@ def score_one(url: str, config: Path, db_path: Path) -> None:
             body=doc.body,
             doc_type=doc.doc_type,
         )
+        if result.score is None:
+            click.echo(
+                f"{fomc_fetch.doc_type_label(doc.doc_type)} — {doc.speech_date.isoformat()} — "
+                f"EXCLUDED ({result.label})"
+            )
+            click.echo(result.rationale)
+            return
         db.insert_score(
             speech_url=doc.url,
             score=result.score,
@@ -225,6 +233,13 @@ def score_one(url: str, config: Path, db_path: Path) -> None:
         title=speech.title,
         body=speech.body,
     )
+    if result.score is None:
+        click.echo(
+            f"{speaker.name} — {speech.speech_date.isoformat()} — "
+            f"EXCLUDED ({result.label})"
+        )
+        click.echo(result.rationale)
+        return
     db.insert_score(
         speech_url=speech.url,
         score=result.score,
@@ -434,7 +449,7 @@ def _process_speeches(
             log.exception("fetch failed: %s — %s", ref.url, exc)
             continue
 
-        db.insert_speech(StoredSpeech(
+        canonical_url = db.insert_speech(StoredSpeech(
             url=speech.url,
             speaker_key=speech.speaker_key,
             speech_date=speech.speech_date,
@@ -442,6 +457,19 @@ def _process_speeches(
             location=speech.location,
             body=speech.body,
         ))
+        if canonical_url != speech.url:
+            log.info("dedup: %s -> canonical %s", speech.url, canonical_url)
+            if db.has_score(canonical_url):
+                continue
+
+        filt = speech_filter.evaluate(speech.body, doc_type="speech")
+        if not filt.passes:
+            log.warning(
+                "skip score: %s %s — %s (words=%d, kw=%d, link=%.2f)",
+                speaker.key, speech.speech_date, filt.reason,
+                filt.word_count, filt.keyword_hits, filt.link_density,
+            )
+            continue
 
         try:
             result = score_speech(
@@ -455,8 +483,17 @@ def _process_speeches(
             log.exception("score failed: %s — %s", speech.url, exc)
             continue
 
+        if result.score is None:
+            log.warning(
+                "rubric excluded: %s %s — %s",
+                speaker.key, speech.speech_date, result.rationale,
+            )
+            if db.delete_score(canonical_url):
+                log.info("cleared stale score for excluded speech: %s", canonical_url)
+            continue
+
         db.insert_score(
-            speech_url=speech.url,
+            speech_url=canonical_url,
             score=result.score,
             label=result.label,
             rationale=result.rationale,
@@ -478,7 +515,7 @@ def _process_speeches(
         if decision.fire:
             alerts.append(AlertItem(
                 speaker=speaker,
-                speech_url=speech.url,
+                speech_url=canonical_url,
                 speech_date=speech.speech_date,
                 title=speech.title,
                 location=speech.location,
@@ -512,7 +549,7 @@ def _process_fomc(
             log.exception("fomc fetch failed: %s — %s", ref.url, exc)
             continue
 
-        db.insert_speech(StoredSpeech(
+        canonical_url = db.insert_speech(StoredSpeech(
             url=doc.url,
             speaker_key=doc.speaker_key,
             speech_date=doc.speech_date,
@@ -521,6 +558,10 @@ def _process_fomc(
             body=doc.body,
             doc_type=doc.doc_type,
         ))
+        if canonical_url != doc.url:
+            log.info("dedup: %s -> canonical %s", doc.url, canonical_url)
+            if db.has_score(canonical_url):
+                continue
 
         speaker_name = (
             "FOMC Committee" if doc.speaker_key == fomc_fetch.FOMC_SPEAKER_KEY
@@ -542,8 +583,17 @@ def _process_fomc(
             log.exception("fomc score failed: %s — %s", doc.url, exc)
             continue
 
+        if result.score is None:
+            log.warning(
+                "rubric excluded FOMC doc: %s %s — %s",
+                doc.doc_type, doc.speech_date, result.rationale,
+            )
+            if db.delete_score(canonical_url):
+                log.info("cleared stale score for excluded FOMC doc: %s", canonical_url)
+            continue
+
         db.insert_score(
-            speech_url=doc.url,
+            speech_url=canonical_url,
             score=result.score,
             label=result.label,
             rationale=result.rationale,
@@ -573,10 +623,10 @@ def _process_fomc(
                         current_date=doc.speech_date,
                         current_score=result.score,
                     )
-                    db.set_diff_notes(doc.url, notes)
-                    log.info("annotated diff: %s -> %d notes", doc.url, len(notes))
+                    db.set_diff_notes(canonical_url, notes)
+                    log.info("annotated diff: %s -> %d notes", canonical_url, len(notes))
                 except Exception as exc:
-                    log.exception("annotate failed: %s — %s", doc.url, exc)
+                    log.exception("annotate failed: %s — %s", canonical_url, exc)
 
         if suppress_alerts:
             continue
@@ -589,7 +639,7 @@ def _process_fomc(
                 prior_body = prior_speech.body if prior_speech else None
             alerts.append(FomcAlertItem(
                 doc_type=doc.doc_type,
-                speech_url=doc.url,
+                speech_url=canonical_url,
                 speech_date=doc.speech_date,
                 title=doc.title,
                 score=result.score,
@@ -731,6 +781,134 @@ def _fomc_ref_from_url(url: str) -> fomc_fetch.FomcRef:
         url=url, doc_type=doc_type, speaker_key=fomc_fetch.FOMC_SPEAKER_KEY,
         pub_date=parsed["date"], title=title,
     )
+
+
+@cli.command("clean")
+@click.option("--dry-run", is_flag=True, help="Print actions without modifying the DB.")
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+def clean(dry_run: bool, db_path: Path) -> None:
+    """Re-evaluate stored speeches; backfill content_hash; dedup URL duplicates;
+    drop score rows for bodies that fail the speech-likeness filter.
+
+    Speech bodies are preserved for audit (only `speech_scores` rows are deleted
+    when the filter rejects). URL-duplicate `speeches` rows ARE removed.
+    """
+    db = Database(db_path)
+
+    backfilled = 0
+    url_dupes_removed = 0
+    scores_dropped = 0
+
+    with db.connect() as conn:
+        # Pass 1: backfill content_hash for any row missing it.
+        rows = conn.execute(
+            "SELECT url, body FROM speeches WHERE content_hash IS NULL"
+        ).fetchall()
+        for r in rows:
+            h = content_hash(r["body"])
+            if dry_run:
+                click.echo(f"[dry-run] backfill hash: {r['url']}")
+            else:
+                conn.execute(
+                    "UPDATE speeches SET content_hash = ? WHERE url = ?",
+                    (h, r["url"]),
+                )
+            backfilled += 1
+
+        # Pass 2: resolve URL duplicates within the same (speaker, date, hash).
+        # Compute hashes in Python rather than relying on the DB column so that
+        # dry-run reports correctly even before backfill is applied.
+        all_rows = conn.execute(
+            "SELECT url, speaker_key, speech_date, body FROM speeches"
+        ).fetchall()
+        groups_map: dict[tuple, list[str]] = {}
+        for r in all_rows:
+            key = (r["speaker_key"], r["speech_date"], content_hash(r["body"]))
+            groups_map.setdefault(key, []).append(r["url"])
+        for (speaker_key, speech_date, _h), urls in groups_map.items():
+            if len(urls) <= 1:
+                continue
+            g = {"speaker_key": speaker_key, "speech_date": speech_date}
+            canonical = _pick_canonical_url(urls)
+            removable = [u for u in urls if u != canonical]
+            click.echo(
+                f"{'[dry-run] ' if dry_run else ''}dedup {g['speaker_key']} "
+                f"{g['speech_date']}: keeping {canonical}; removing {removable}"
+            )
+            if not dry_run:
+                # If the canonical lacks a score but a duplicate has one, copy it over.
+                canonical_score = conn.execute(
+                    "SELECT 1 FROM speech_scores WHERE speech_url = ?", (canonical,),
+                ).fetchone()
+                if canonical_score is None:
+                    for u in removable:
+                        s = conn.execute(
+                            "SELECT * FROM speech_scores WHERE speech_url = ?", (u,),
+                        ).fetchone()
+                        if s is not None:
+                            conn.execute(
+                                """INSERT OR REPLACE INTO speech_scores
+                                   (speech_url, score, label, rationale, key_quotes,
+                                    model, scored_at, diff_notes)
+                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                (
+                                    canonical, s["score"], s["label"], s["rationale"],
+                                    s["key_quotes"], s["model"], s["scored_at"],
+                                    s["diff_notes"] if "diff_notes" in s.keys() else None,
+                                ),
+                            )
+                            break
+                placeholders = ",".join("?" for _ in removable)
+                conn.execute(
+                    f"DELETE FROM speech_scores WHERE speech_url IN ({placeholders})",
+                    removable,
+                )
+                conn.execute(
+                    f"DELETE FROM speeches WHERE url IN ({placeholders})",
+                    removable,
+                )
+            url_dupes_removed += len(removable)
+
+        # Pass 3: re-evaluate every speech-typed body against the new filter.
+        rows = conn.execute(
+            """SELECT s.url, s.speaker_key, s.speech_date, s.body
+               FROM speeches s
+               JOIN speech_scores sc ON sc.speech_url = s.url
+               WHERE s.doc_type = 'speech'"""
+        ).fetchall()
+        for r in rows:
+            filt = speech_filter.evaluate(r["body"], doc_type="speech")
+            if filt.passes:
+                continue
+            click.echo(
+                f"{'[dry-run] ' if dry_run else ''}drop score: {r['speaker_key']} "
+                f"{r['speech_date']} {r['url']} — {filt.reason} "
+                f"(words={filt.word_count}, kw={filt.keyword_hits}, "
+                f"link={filt.link_density:.2f})"
+            )
+            if not dry_run:
+                conn.execute(
+                    "DELETE FROM speech_scores WHERE speech_url = ?", (r["url"],),
+                )
+            scores_dropped += 1
+
+    summary = (
+        f"{'[dry-run] ' if dry_run else ''}clean summary: "
+        f"backfilled {backfilled} hash(es), "
+        f"removed {url_dupes_removed} URL duplicate(s), "
+        f"dropped {scores_dropped} score row(s)."
+    )
+    click.echo(summary)
+
+
+def _pick_canonical_url(urls: list[str]) -> str:
+    """Prefer URLs that contain a 4-digit year segment (e.g. .../2026/sp-...);
+    otherwise pick the lexicographically smallest URL for determinism."""
+    import re as _re
+    year_re = _re.compile(r"/(19|20)\d{2}/")
+    with_year = [u for u in urls if year_re.search(u)]
+    pool = with_year if with_year else urls
+    return sorted(pool)[0]
 
 
 if __name__ == "__main__":
