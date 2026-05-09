@@ -360,7 +360,7 @@ def futures_cmd(db_path: Path, refresh: bool) -> None:
 @click.option("--force", is_flag=True,
               help="Re-fetch even meetings already populated.")
 def market_reactions_cmd(db_path: Path, refresh: bool, force: bool) -> None:
-    """Print the FOMC market-reaction table (ES=F + NQ=F) for each meeting
+    """Print the FOMC market-reaction table (ES=F, NQ=F, ZT=F) for each meeting
     with a press conference. Captures the statement window (2:00–2:30pm ET)
     and the post-presser 24h window."""
     db = Database(db_path)
@@ -806,7 +806,7 @@ def _refresh_futures_and_calendar(db: Database) -> None:
         log.exception("futures fetch failed: %s", exc)
 
 
-_REACTION_TICKERS: tuple[str, ...] = ("ES=F", "NQ=F")
+_REACTION_TICKERS: tuple[str, ...] = ("ES=F", "NQ=F", "ZT=F")
 
 
 def _refresh_market_reactions(db: Database, *, force: bool = False) -> None:

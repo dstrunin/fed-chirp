@@ -507,6 +507,7 @@ def _fomc_pulse(fomc_scores: list[StoredScore]) -> str:
 _REACTION_TICKERS: tuple[tuple[str, str], ...] = (
     ("ES=F", "S&P (ES)"),
     ("NQ=F", "Nasdaq (NQ)"),
+    ("ZT=F", "2y T-Note (ZT)"),
 )
 
 
