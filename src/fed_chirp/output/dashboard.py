@@ -916,6 +916,21 @@ _PAGE = """<!doctype html>
 {divergence_html}
 
 <h2>Governors and presidents</h2>
+<p class="meta">
+  Each row is one Federal Reserve speaker. Speeches by the seven
+  <strong>Board governors</strong> are pulled from their per-speaker RSS feeds on
+  <a href="https://www.federalreserve.gov" target="_blank" rel="noopener">federalreserve.gov</a>;
+  speeches by the twelve <strong>regional bank presidents</strong> are scraped from each
+  reserve bank's own website (NY Fed, SF Fed, Atlanta Fed, etc.).
+  <strong>90d mean</strong> is the average score across all of that speaker's speeches in
+  the trailing 90 days. <strong>Last 30 speeches</strong> is a sparkline of their up-to-30
+  most recent speech scores, oldest&nbsp;&rarr;&nbsp;newest, on the &minus;2&hellip;+2 scale.
+  <strong>Most recent</strong> shows the latest speech's score and date plus the speaker's
+  all-time speech count.
+  Coverage depends on each upstream source: a few regional banks (notably the Chicago Fed)
+  publish limited speech archives, so a thin row usually reflects what that bank posts
+  publicly rather than how often the president actually speaks.
+</p>
 <table>
   <thead><tr><th>Speaker</th><th>Region</th><th>Role</th><th>90d mean</th>
              <th>Last 30 speeches</th><th>Most recent</th></tr></thead>
