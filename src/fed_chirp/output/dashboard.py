@@ -19,6 +19,7 @@ from pathlib import Path
 from ..analysis.deltas import WINDOW_DAYS
 from ..analysis import divergence as divergence_analysis
 from ..analysis import futures as futures_analysis
+from ..analysis.health import StaleSpeaker
 from ..fetchers.federalreserve import Speaker
 from ..fetchers.fomc import (
     DOC_MINUTES,
@@ -56,6 +57,7 @@ def render(
     scores: list[StoredScore],
     out_path: Path,
     futures_ctx: FuturesContext | None = None,
+    stale: list[StaleSpeaker] | None = None,
 ) -> None:
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
@@ -80,6 +82,7 @@ def render(
     recent_html = _recent_table(speakers, speech_scores[:30])
     futures_html = _market_implied_section(futures_ctx, meetings)
     divergence_html = _committee_divergence_section(speakers, scores)
+    health_html = _coverage_health_section(stale or [])
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -93,9 +96,47 @@ def render(
             divergence_html=divergence_html,
             speakers_html=rows_html,
             recent_html=recent_html,
+            health_html=health_html,
         ),
         encoding="utf-8",
     )
+
+
+def _coverage_health_section(stale: list[StaleSpeaker]) -> str:
+    if not stale:
+        return ""
+    rows = []
+    for s in stale:
+        if s.last_speech_date is None:
+            last_str = "never"
+            silent_str = "&mdash;"
+        else:
+            last_str = s.last_speech_date.isoformat()
+            silent_str = f"{s.days_silent} days"
+        rows.append(
+            f"""<tr>
+              <td>{html.escape(s.speaker.name)}</td>
+              <td class="region">{html.escape(s.speaker.region)}</td>
+              <td>{last_str}</td>
+              <td class="muted">{silent_str}</td>
+            </tr>"""
+        )
+    return f"""
+    <section>
+      <h2>Coverage health</h2>
+      <p class="muted">
+        Speakers whose latest stored speech is more than 60 days old. Could
+        mean the scraper broke or just that the speaker hasn't published a
+        transcript-archived speech in a while (TV/podcast appearances are
+        intentionally excluded).
+      </p>
+      <table class="recent">
+        <thead>
+          <tr><th>Speaker</th><th>Region</th><th>Last speech</th><th>Silent for</th></tr>
+        </thead>
+        <tbody>{"".join(rows)}</tbody>
+      </table>
+    </section>"""
 
 
 def _speaker_row(speaker: Speaker, scores: list[StoredScore]) -> str:
@@ -939,6 +980,8 @@ _PAGE = """<!doctype html>
 
 <h2>Recent speeches</h2>
 {recent_html}
+
+{health_html}
 
 <script>
 (function () {{

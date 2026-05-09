@@ -313,6 +313,23 @@ class Database:
             ).fetchall()
         return [_row_to_score(r) for r in rows]
 
+    def last_speech_dates(self, doc_type: str = "speech") -> dict[str, dt.date]:
+        """Return {speaker_key: latest_speech_date} across the speeches table.
+
+        Used by the coverage-health check. Defaults to doc_type='speech' so
+        FOMC docs (which are stored under a synthetic FOMC speaker key) don't
+        skew the per-speaker freshness signal.
+        """
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT speaker_key, MAX(speech_date) AS d
+                   FROM speeches
+                   WHERE doc_type = ?
+                   GROUP BY speaker_key""",
+                (doc_type,),
+            ).fetchall()
+        return {r["speaker_key"]: dt.date.fromisoformat(r["d"]) for r in rows}
+
     def get_speech(self, url: str) -> StoredSpeech | None:
         with self.connect() as conn:
             r = conn.execute("SELECT * FROM speeches WHERE url = ?", (url,)).fetchone()

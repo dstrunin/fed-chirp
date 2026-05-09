@@ -13,6 +13,7 @@ from .analysis.deltas import should_alert
 from .analysis import divergence as divergence_analysis
 from .analysis.fomc_deltas import should_alert_doc
 from .analysis import futures as futures_analysis
+from .analysis import health
 from .fetchers import fomc as fomc_fetch
 from .fetchers import futures as futures_fetch
 from .fetchers import fomc_calendar
@@ -658,7 +659,19 @@ def _process_fomc(
 def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
     scores = db.all_scores()
     ctx = _build_futures_context(db)
-    dash.render(speakers, scores, DEFAULT_DASHBOARD, futures_ctx=ctx)
+    governor_speakers = [sp for sp in speakers if sp.key != fomc_fetch.FOMC_SPEAKER_KEY]
+    stale = health.find_stale(
+        governor_speakers, db.last_speech_dates(), dt.date.today(),
+    )
+    for s in stale:
+        if s.last_speech_date is None:
+            log.warning("coverage health: %s (%s) has NO speeches stored",
+                        s.speaker.name, s.speaker.region)
+        else:
+            log.warning("coverage health: %s (%s) silent for %d days (last: %s)",
+                        s.speaker.name, s.speaker.region, s.days_silent,
+                        s.last_speech_date.isoformat())
+    dash.render(speakers, scores, DEFAULT_DASHBOARD, futures_ctx=ctx, stale=stale)
     log.info("dashboard: regenerated at %s (%d documents)", DEFAULT_DASHBOARD, len(scores))
 
 
@@ -781,6 +794,38 @@ def _fomc_ref_from_url(url: str) -> fomc_fetch.FomcRef:
         url=url, doc_type=doc_type, speaker_key=fomc_fetch.FOMC_SPEAKER_KEY,
         pub_date=parsed["date"], title=title,
     )
+
+
+@cli.command("health")
+@click.option("--threshold", "threshold_days", type=int,
+              default=health.DEFAULT_THRESHOLD_DAYS,
+              help="Flag speakers silent for more than this many days.")
+@click.option("--config", type=click.Path(path_type=Path), default=DEFAULT_CONFIG)
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+def health_cmd(threshold_days: int, config: Path, db_path: Path) -> None:
+    """List speakers whose latest stored speech is older than the threshold.
+
+    A long quiet stretch can mean the scraper broke OR the speaker simply
+    hasn't published a transcript-archived speech (TV/podcast appearances
+    are intentionally excluded). Use this to spot which case is which.
+    """
+    speakers = load_speakers(config)
+    governors = [sp for sp in speakers if sp.key != fomc_fetch.FOMC_SPEAKER_KEY]
+    db = Database(db_path)
+    stale = health.find_stale(
+        governors, db.last_speech_dates(), dt.date.today(),
+        threshold_days=threshold_days,
+    )
+    if not stale:
+        click.echo(f"All {len(governors)} speakers fresh (threshold={threshold_days}d).")
+        return
+    click.echo(
+        f"{len(stale)} of {len(governors)} speakers silent > {threshold_days}d:"
+    )
+    for s in stale:
+        last = s.last_speech_date.isoformat() if s.last_speech_date else "never"
+        days = "—" if s.last_speech_date is None else f"{s.days_silent}d"
+        click.echo(f"  {days:>5}  {s.speaker.region:>12}  {s.speaker.name}  (last: {last})")
 
 
 @cli.command("rescore")
