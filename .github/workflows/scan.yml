@@ -1,0 +1,56 @@
+name: scan
+
+on:
+  schedule:
+    # 22:30 UTC = 18:30 EDT / 17:30 EST. GitHub Actions cron is UTC-only and
+    # does NOT follow DST. Two crons bracket the DST shift; the scan dedupes
+    # on URL so the second run is a cheap no-op except in EST when it
+    # becomes the real run.
+    - cron: '30 22 * * 1-5'
+    - cron: '30 23 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Install Playwright Chromium
+        run: playwright install --with-deps chromium
+
+      - name: Run scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_SENDER: ${{ secrets.GMAIL_SENDER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_RECIPIENT: ${{ secrets.ALERT_RECIPIENT }}
+        run: fed-chirp scan
+
+      - name: Commit updated DB + dashboard
+        run: |
+          git config user.name  "fed-chirp-bot"
+          git config user.email "fed-chirp-bot@users.noreply.github.com"
+          git add data/fed_chirp.sqlite dashboard/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "scan: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
