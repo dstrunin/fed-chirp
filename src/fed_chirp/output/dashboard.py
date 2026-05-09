@@ -68,7 +68,9 @@ def render(
 
     governor_speakers = [sp for sp in speakers if sp.key != FOMC_SPEAKER_KEY]
 
-    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_utc = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    now_iso = now_utc.isoformat()
+    now_fallback = now_utc.strftime("%b %-d, %Y, %-I:%M %p UTC")
     rows_html = "\n".join(
         _speaker_row(sp, by_speaker.get(sp.key, [])) for sp in governor_speakers
     )
@@ -82,7 +84,8 @@ def render(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         _PAGE.format(
-            now=now,
+            now_iso=now_iso,
+            now_fallback=now_fallback,
             total=len(scores),
             meetings_html=meetings_html,
             fomc_html=fomc_html,
@@ -875,16 +878,27 @@ _PAGE = """<!doctype html>
   .camp-name {{ flex: 1; color: #222; }}
   .legend {{ font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }}
   .legend span {{ font-weight: 600; }}
+  .about {{ color: #555; font-size: 0.92rem; line-height: 1.5;
+           margin: 0 0 1.5rem; max-width: 760px; }}
+  .about strong {{ color: #222; }}
 </style>
 </head>
 <body>
 <h1>Fed Chirp</h1>
-<div class="meta">Last regenerated {now} &middot; {total} speeches scored</div>
+<div class="meta">Last regenerated <time id="regen-time" datetime="{now_iso}">{now_fallback}</time> &middot; {total} speeches scored</div>
 <div class="legend">
   Scale: <span class="dove">−2 dovish</span> &middot;
   <span class="neutral">0 neutral</span> &middot;
   <span class="hawk">+2 hawkish</span>
 </div>
+<p class="about">
+  <strong>FedChirp</strong> tracks public speeches, FOMC statements, minutes, and Powell
+  press-conference transcripts from the seven Federal Reserve Board governors and twelve
+  regional bank presidents. Each document is scored on a −2 (dovish) to +2 (hawkish) scale
+  by Claude against a fixed rubric, building a longitudinal view of every speaker's tone
+  and the committee's collective stance. Scrapers run every weekday evening; alerts fire
+  when a speaker's score drifts meaningfully from their 90-day baseline.
+</p>
 
 <h2>FOMC pulse</h2>
 {meetings_html}
@@ -906,6 +920,17 @@ _PAGE = """<!doctype html>
 <h2>Recent speeches</h2>
 {recent_html}
 
+<script>
+(function () {{
+  var el = document.getElementById('regen-time');
+  if (!el) return;
+  var d = new Date(el.getAttribute('datetime'));
+  if (isNaN(d)) return;
+  var opts = {{ year: 'numeric', month: 'short', day: 'numeric',
+               hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }};
+  el.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
+}})();
+</script>
 </body>
 </html>
 """
