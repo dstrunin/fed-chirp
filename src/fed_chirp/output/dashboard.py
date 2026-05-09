@@ -537,13 +537,21 @@ def _fmt_pct_cell(pct: float | None, vol: float | None) -> str:
 
 def _fmt_yield_cell(pct: float | None, vol: float | None,
                      duration: float = _ZT_DURATION) -> str:
-    """Render an "+3.5 bp σ12" cell for a bond-futures ticker.
+    """Render a "+3.5 bp" cell for a bond-futures ticker.
 
     Converts price % change to approximate yield change in basis points
     via -pct * 100 / duration (price moves inversely to yield). Sign is
     flipped so positive bp = hawkish, aligned with the rest of the
     dashboard's polarity convention.
+
+    Realized vol is intentionally NOT shown for bond tickers: the
+    annualized-from-short-window math inflates the magnitude in a way
+    that's misleading next to the equity σ values, and yield vol on a
+    single-meeting basis isn't a useful read on its own. `vol` stays in
+    the signature so this function plugs into the same dispatch as
+    `_fmt_pct_cell`.
     """
+    del vol  # accepted for dispatch symmetry, intentionally unused
     if pct is None:
         return '<span class="muted">—</span>'
     bp = -pct * 100.0 / duration
@@ -554,12 +562,7 @@ def _fmt_yield_cell(pct: float | None, vol: float | None,
     else:
         cls = "dove"   # yields down = dovish
     sign = "+" if bp > 0 else ("−" if bp < 0 else "")
-    body = f'<span class="{cls}">{sign}{abs(bp):.1f} bp</span>'
-    if vol is not None and vol > 0:
-        # Realized vol is annualized % of price; convert to bp annualized too.
-        bp_vol = vol * 100.0 / duration
-        body += f'<span class="vol">σ{bp_vol:.0f}</span>'
-    return body
+    return f'<span class="{cls}">{sign}{abs(bp):.1f} bp</span>'
 
 
 def _fmt_reaction_cell(ticker: str, pct: float | None, vol: float | None) -> str:
