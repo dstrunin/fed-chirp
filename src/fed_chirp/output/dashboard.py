@@ -626,13 +626,16 @@ def _hero_section(
 def _fomc_pulse_section(meetings: list[_Meeting]) -> str:
     if not meetings:
         return ""
-    cells = list(reversed(meetings[:4]))  # oldest → newest left to right
+    # Grid: latest first (left), oldest last (right).
+    # _group_by_meeting() returns meetings sorted descending, so we just slice.
+    cells = meetings[:4]
     cell_blocks: list[str] = []
     for i, m in enumerate(cells):
-        is_latest = (i == len(cells) - 1)
+        is_latest = (i == 0)
+        is_first = (i == len(cells) - 1)
         if is_latest:
             cur_label = "latest"
-        elif i == 0:
+        elif is_first:
             cur_label = "first"
         else:
             cur_label = "hold"
@@ -648,7 +651,8 @@ def _fomc_pulse_section(meetings: list[_Meeting]) -> str:
         drift_str = _format_score(m.drift) if m.drift is not None else "—"
         drift_cls = _polarity_class(m.drift) if m.drift is not None else ""
 
-        prior = cells[i - 1] if i > 0 else None
+        # In latest-first ordering, the prior (older) meeting is the next entry.
+        prior = cells[i + 1] if i + 1 < len(cells) else None
         if prior and m.combined is not None and prior.combined is not None:
             d = m.combined - prior.combined
             delta_str = _format_score(d)
@@ -670,7 +674,9 @@ def _fomc_pulse_section(meetings: list[_Meeting]) -> str:
       </div>
     </div>""")
 
-    traj_svg = _trajectory_svg(cells)
+    # Trajectory chart still reads time left-to-right (oldest → newest), so
+    # pass a reversed copy of the cells list.
+    traj_svg = _trajectory_svg(list(reversed(cells)))
     notes_html = _diff_notes_aside(meetings[0])
 
     return f"""
