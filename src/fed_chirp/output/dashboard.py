@@ -275,15 +275,20 @@ _ZT_DURATION = 2.0
 
 
 def _fmt_pct_cell(pct: float | None) -> str:
-    """Equity ticker cell: '+0.42%' / '−0.19%' / '—' with polarity coloring."""
+    """Equity ticker cell: '+0.42%' / '−0.19%' / '—'.
+
+    Uses market-data convention coloring inside the Market Reaction
+    section: positive = green, negative = red. Distinct from the
+    hawk/dove tone classes used elsewhere on the dashboard.
+    """
     if pct is None:
         return '<span class="muted">—</span>'
     if abs(pct) < 0.005:
         cls = "t-neutral"
     elif pct > 0:
-        cls = "t-hawk"
+        cls = "t-up"
     else:
-        cls = "t-dove"
+        cls = "t-down"
     sign = "+" if pct > 0 else "−" if pct < 0 else ""
     return f'<span class="{cls}">{sign}{abs(pct):.2f}%</span>'
 
@@ -291,8 +296,12 @@ def _fmt_pct_cell(pct: float | None) -> str:
 def _fmt_yield_cell(pct: float | None, duration: float = _ZT_DURATION) -> str:
     """Bond ticker cell: '+3.5 bp' approx 2y yield Δ.
 
-    Sign-flipped from price (price up = yield down), so positive bp =
-    hawkish in this column too — aligns with the rest of the dashboard.
+    Sign is flipped from price (price up = yield down), so the
+    displayed bp number runs +ve when yields rose. Coloring follows
+    the same plus-is-green / minus-is-red convention as the equity
+    cells in this section, so a row of green or red reads
+    consistently across all three tickers regardless of ticker
+    semantics.
     """
     if pct is None:
         return '<span class="muted">—</span>'
@@ -300,9 +309,9 @@ def _fmt_yield_cell(pct: float | None, duration: float = _ZT_DURATION) -> str:
     if abs(bp) < 0.5:
         cls = "t-neutral"
     elif bp > 0:
-        cls = "t-hawk"
+        cls = "t-up"
     else:
-        cls = "t-dove"
+        cls = "t-down"
     sign = "+" if bp > 0 else "−" if bp < 0 else ""
     return f'<span class="{cls}">{sign}{abs(bp):.1f} bp</span>'
 
@@ -1612,6 +1621,12 @@ _PAGE = """<!doctype html>
   --dove-soft: oklch(0.78 0.06 245);
   --dove-bg: oklch(0.93 0.035 245);
   --neutral: #6f6a60;
+  /* Market-data convention coloring used inside the Market Reaction
+     section. Distinct from hawk/dove (which is policy-stance polarity)
+     because for equity tickers a price-up move isn't inherently
+     hawkish or dovish — it's just up. */
+  --market-up: oklch(0.50 0.13 150);
+  --market-down: oklch(0.52 0.16 25);
   --serif: 'Instrument Serif', 'EB Garamond', Georgia, serif;
   --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
@@ -1638,6 +1653,8 @@ a {{ color: inherit; }}
 .t-hawk {{ color: var(--hawk); }}
 .t-dove {{ color: var(--dove); }}
 .t-neutral {{ color: var(--neutral); }}
+.t-up {{ color: var(--market-up); }}
+.t-down {{ color: var(--market-down); }}
 .dot {{
   display: inline-block; width: 8px; height: 8px;
   border-radius: 50%; vertical-align: middle; margin-right: 6px;
