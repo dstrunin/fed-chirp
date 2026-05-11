@@ -1393,7 +1393,7 @@ def _method_section() -> str:
     <div class="method__card">
       <div class="step">Step 02</div>
       <h4>Score</h4>
-      <p>A −2 (very dovish) to +2 (very hawkish) scale. Prompt caching keeps the rubric warm; doc-type header switches per file. Steady-state cost: about $5–10 a year.</p>
+      <p>A −2 (very dovish) to +2 (very hawkish) scale. Prompt caching keeps the rubric warm; doc-type header switches per file.</p>
     </div>
     <div class="method__card">
       <div class="step">Step 03</div>
