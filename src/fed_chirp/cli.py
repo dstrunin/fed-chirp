@@ -54,10 +54,21 @@ def cli() -> None:
 
 @cli.command()
 @click.option("--dry-run", is_flag=True, help="Don't send email; print to stdout.")
+@click.option("--summary-file", "summary_file",
+              type=click.Path(path_type=Path), default=None,
+              help="Write a markdown summary of this scan to PATH. "
+                   "Used by the GitHub Actions workflow for the commit "
+                   "message body and step summary.")
 @click.option("--config", type=click.Path(path_type=Path), default=DEFAULT_CONFIG)
 @click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
-def scan(dry_run: bool, config: Path, db_path: Path) -> None:
+def scan(
+    dry_run: bool,
+    summary_file: Path | None,
+    config: Path,
+    db_path: Path,
+) -> None:
     """Discover, fetch, and score new speeches + FOMC docs; alert on shifts."""
+    run_start = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     speakers = load_speakers(config)
     db = Database(db_path)
 
@@ -87,6 +98,25 @@ def scan(dry_run: bool, config: Path, db_path: Path) -> None:
         log.info("alerts: %d sent (dry_run=%s)", len(all_alerts), dry_run)
     else:
         log.info("no alerts this run")
+
+    if summary_file is not None:
+        new_scores = db.scores_since(run_start)
+        governor_speakers = [
+            sp for sp in speakers if sp.key != fomc_fetch.FOMC_SPEAKER_KEY
+        ]
+        today = dt.date.today()
+        stale = health.find_stale(governor_speakers, db.last_speech_dates(), today)
+        summary_md = _build_scan_summary(
+            run_start=run_start,
+            new_scores=new_scores,
+            alerts=all_alerts,
+            stale=stale,
+            speakers=speakers,
+        )
+        summary_file.parent.mkdir(parents=True, exist_ok=True)
+        summary_file.write_text(summary_md, encoding="utf-8")
+        log.info("scan summary written to %s (%d new docs)",
+                 summary_file, len(new_scores))
 
 
 @cli.command()
@@ -1293,6 +1323,86 @@ def _pick_canonical_url(urls: list[str]) -> str:
     with_year = [u for u in urls if year_re.search(u)]
     pool = with_year if with_year else urls
     return sorted(pool)[0]
+
+
+def _build_scan_summary(
+    run_start: dt.datetime,
+    new_scores: list,
+    alerts: list,
+    stale: list,
+    speakers: list[Speaker],
+) -> str:
+    """Render a markdown summary of one scan run.
+
+    Format is chosen to double as a git commit message body — title line
+    on top, blank line, then markdown sections. Git log displays this
+    verbatim; GitHub renders the markdown on the commits page and on the
+    workflow step summary.
+    """
+    speakers_by_key = {sp.key: sp for sp in speakers}
+
+    n_speech = sum(1 for s in new_scores if s.doc_type == "speech")
+    n_fomc = sum(1 for s in new_scores if s.doc_type != "speech")
+    n_alerts = len(alerts)
+
+    def _plural(n: int, singular: str, plural: str) -> str:
+        return f"{n} {singular if n == 1 else plural}"
+
+    parts: list[str] = [
+        _plural(n_speech, "speech", "speeches"),
+        _plural(n_fomc, "FOMC doc", "FOMC docs"),
+    ]
+    if n_alerts:
+        parts.append(_plural(n_alerts, "alert", "alerts"))
+    title_summary = ", ".join(parts)
+    title = f"scan: {run_start.strftime('%Y-%m-%d %H:%M UTC')} — {title_summary}"
+
+    out: list[str] = [title, ""]
+
+    if not new_scores:
+        out.append("_No new documents scored this run._")
+    else:
+        out.append("### New scores")
+        out.append("")
+        out.append("| Date | Speaker | Score | Label | Type |")
+        out.append("|---|---|---|---|---|")
+        for s in new_scores:
+            sp = speakers_by_key.get(s.speaker_key)
+            name = sp.name if sp else s.speaker_key
+            score_str = (f"{'+' if s.score >= 0 else '−'}{abs(s.score):.2f}"
+                         if s.score is not None else "—")
+            doc_kind = s.doc_type.replace("fomc_", "FOMC ").replace("_", " ")
+            out.append(
+                f"| {s.speech_date.isoformat()} | {name} | "
+                f"{score_str} | {s.label} | {doc_kind} |"
+            )
+        out.append("")
+
+    if alerts:
+        out.append("### Alerts fired")
+        out.append("")
+        for a in alerts:
+            sp_name = (a.speaker.name if hasattr(a, "speaker")
+                        else "FOMC " + getattr(a, "doc_type", "").replace("fomc_", ""))
+            score_str = (f"{'+' if a.score >= 0 else '−'}{abs(a.score):.2f}"
+                         if getattr(a, "score", None) is not None else "—")
+            out.append(f"- **{sp_name}** — score {score_str}: {a.rationale}")
+        out.append("")
+
+    if stale:
+        out.append(f"### Coverage gone quiet ({len(stale)})")
+        out.append("")
+        for s in stale[:10]:
+            if s.last_speech_date is None:
+                last = "no speeches stored"
+            else:
+                last = f"last {s.last_speech_date.isoformat()} · {s.days_silent}d silent"
+            out.append(f"- {s.speaker.name} ({s.speaker.region}) — {last}")
+        if len(stale) > 10:
+            out.append(f"- _…and {len(stale) - 10} more_")
+        out.append("")
+
+    return "\n".join(out).rstrip() + "\n"
 
 
 if __name__ == "__main__":
