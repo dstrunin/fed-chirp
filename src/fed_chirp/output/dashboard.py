@@ -367,6 +367,7 @@ def render(
     topbar_html = _topbar_section()
     ticker_html = _ticker_section(meetings, speech_scores, futures_ctx)
     hero_html = _hero_section(meetings, len(scores), len(governor_speakers), now_utc)
+    whats_new_html = _whats_new_section(scores, speakers_by_key)
     pulse_html = _fomc_pulse_section(meetings)
     reactions_html = _reactions_section(reactions or [])
     market_path_html = _market_path_section(futures_ctx, meetings)
@@ -386,6 +387,7 @@ def render(
             topbar=topbar_html,
             ticker=ticker_html,
             hero=hero_html,
+            whats_new=whats_new_html,
             pulse=pulse_html,
             reactions=reactions_html,
             market_path=market_path_html,
@@ -626,6 +628,60 @@ def _hero_section(
     </div>
   </div>
   {reading_card}
+</section>
+"""
+
+
+# ---------- section: what's new ----------
+
+_WHATS_NEW_LIMIT = 6
+
+
+def _whats_new_section(
+    scores: list[StoredScore],
+    speakers_by_key: dict[str, Speaker],
+) -> str:
+    """Compact "recently scored" panel slotted between the hero and §01.
+
+    Sorts the full score set by `speech_date` desc (when the speech was
+    actually given) so the panel always reads as a clean reverse-
+    chronological news feed; freshly backfilled historical speeches
+    don't jump to the top.
+    """
+    if not scores:
+        return ""
+    ranked = sorted(scores, key=lambda s: s.speech_date, reverse=True)
+    items = ranked[:_WHATS_NEW_LIMIT]
+    if not items:
+        return ""
+
+    rows: list[str] = []
+    for s in items:
+        if s.doc_type == "speech":
+            sp = speakers_by_key.get(s.speaker_key)
+            name = sp.name if sp else s.speaker_key
+            kind_tag = ""
+        else:
+            name = doc_type_label(s.doc_type)
+            kind_tag = f' <span class="whats-new__kind">{html.escape(s.doc_type.replace("fomc_", "FOMC ").replace("_", " "))}</span>'
+
+        cls = _polarity_class(s.score)
+        polarity = _polarity_label(s.score)
+        rows.append(f"""
+        <a class="whats-new__row" href="{html.escape(s.speech_url)}" target="_blank" rel="noopener">
+          <span class="whats-new__date">{s.speech_date.isoformat()}</span>
+          <span class="whats-new__name">{html.escape(name)}{kind_tag}</span>
+          <span class="whats-new__score {cls}">{_format_score(s.score)}</span>
+          <span class="whats-new__label">{polarity}</span>
+        </a>""")
+
+    return f"""
+<section class="whats-new" aria-labelledby="whats-new-title">
+  <div class="whats-new__head">
+    <div class="whats-new__title" id="whats-new-title">Recently scored</div>
+    <a class="whats-new__more" href="#recent">See full feed →</a>
+  </div>
+  <div class="whats-new__list">{"".join(rows)}</div>
 </section>
 """
 
@@ -2620,6 +2676,95 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 }}
 .trans__group .trans__list {{ margin-top: 12px; }}
 
+/* ---------- What's new panel ---------- */
+.whats-new {{
+  padding: 32px 72px 40px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+}}
+.whats-new__head {{
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 14px;
+}}
+.whats-new__head .eyebrow {{ color: var(--mute); }}
+.whats-new__title {{
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  flex: 1;
+}}
+.whats-new__more {{
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}}
+.whats-new__more:hover {{
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}}
+.whats-new__list {{
+  display: grid;
+  gap: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: 4px;
+}}
+.whats-new__row {{
+  display: grid;
+  grid-template-columns: 110px 1fr 80px 90px;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+  transition: background 120ms;
+}}
+.whats-new__row:last-child {{ border-bottom: 0; }}
+.whats-new__row:hover {{ background: var(--paper-2); }}
+.whats-new__date {{
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+}}
+.whats-new__name {{
+  font-family: var(--serif);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}}
+.whats-new__kind {{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-left: 8px;
+}}
+.whats-new__score {{
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}}
+.whats-new__label {{
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+  text-transform: uppercase;
+  text-align: right;
+}}
+
 /* ---------- mobile ---------- */
 @media (max-width: 720px) {{
   .topbar {{
@@ -2854,6 +2999,29 @@ table.rxn td.bucket-cell {{ text-align: center; }}
   .trans__col h3.trans__h3 {{ font-size: 20px; }}
   .trans__lede {{ font-size: 13.5px; }}
   .trans__count {{ font-size: 18px; }}
+
+  /* What's new panel — rows reflow with the date on its own line. */
+  .whats-new {{ padding: 24px 20px 28px; }}
+  .whats-new__head {{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 12px;
+  }}
+  .whats-new__title {{ font-size: 18px; }}
+  .whats-new__more {{ font-size: 10.5px; }}
+  .whats-new__row {{
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "date  score"
+      "name  label";
+    gap: 4px 16px;
+    padding: 14px 16px;
+  }}
+  .whats-new__date  {{ grid-area: date; font-size: 11px; }}
+  .whats-new__name  {{ grid-area: name; font-size: 16px; }}
+  .whats-new__score {{ grid-area: score; font-size: 20px; }}
+  .whats-new__label {{ grid-area: label; }}
 }}
 
 @media (prefers-reduced-motion: reduce) {{
@@ -2867,6 +3035,7 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 {topbar}
 {ticker}
 {hero}
+{whats_new}
 {pulse}
 {reactions}
 {market_path}

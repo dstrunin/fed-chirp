@@ -1011,6 +1011,95 @@ table.rxn td.bucket-cell { text-align: center; }
 }
 .trans__group .trans__list { margin-top: 12px; }
 
+/* ---------- What's new panel ---------- */
+.whats-new {
+  padding: 32px 72px 40px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+}
+.whats-new__head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.whats-new__head .eyebrow { color: var(--mute); }
+.whats-new__title {
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  flex: 1;
+}
+.whats-new__more {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.whats-new__more:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.whats-new__list {
+  display: grid;
+  gap: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: 4px;
+}
+.whats-new__row {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px 90px;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+  transition: background 120ms;
+}
+.whats-new__row:last-child { border-bottom: 0; }
+.whats-new__row:hover { background: var(--paper-2); }
+.whats-new__date {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+}
+.whats-new__name {
+  font-family: var(--serif);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.whats-new__kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-left: 8px;
+}
+.whats-new__score {
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.whats-new__label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+  text-transform: uppercase;
+  text-align: right;
+}
+
 /* ---------- mobile ---------- */
 @media (max-width: 720px) {
   .topbar {
@@ -1245,6 +1334,29 @@ table.rxn td.bucket-cell { text-align: center; }
   .trans__col h3.trans__h3 { font-size: 20px; }
   .trans__lede { font-size: 13.5px; }
   .trans__count { font-size: 18px; }
+
+  /* What's new panel — rows reflow with the date on its own line. */
+  .whats-new { padding: 24px 20px 28px; }
+  .whats-new__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .whats-new__title { font-size: 18px; }
+  .whats-new__more { font-size: 10.5px; }
+  .whats-new__row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "date  score"
+      "name  label";
+    gap: 4px 16px;
+    padding: 14px 16px;
+  }
+  .whats-new__date  { grid-area: date; font-size: 11px; }
+  .whats-new__name  { grid-area: name; font-size: 16px; }
+  .whats-new__score { grid-area: score; font-size: 20px; }
+  .whats-new__label { grid-area: label; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1311,7 +1423,7 @@ table.rxn td.bucket-cell { text-align: center; }
       </div>
       <div class="hero__metaitem">
         <span class="eyebrow">Last regenerated</span>
-        <time id="regen-time" datetime="2026-05-13T17:54:06+00:00" class="v hero__metaitem--small">17:54 UTC</time>
+        <time id="regen-time" datetime="2026-05-13T18:44:28+00:00" class="v hero__metaitem--small">18:44 UTC</time>
         <div class="vs">May 13, 2026</div>
       </div>
     </div>
@@ -1357,6 +1469,51 @@ table.rxn td.bucket-cell { text-align: center; }
               </div></div>
   </div>
 
+</section>
+
+
+<section class="whats-new" aria-labelledby="whats-new-title">
+  <div class="whats-new__head">
+    <div class="whats-new__title" id="whats-new-title">Recently scored</div>
+    <a class="whats-new__more" href="#recent">See full feed →</a>
+  </div>
+  <div class="whats-new__list">
+        <a class="whats-new__row" href="https://www.chicagofed.org/publications/speeches/2026/may-8-hoover-institution-monetary-policy" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-05-08</span>
+          <span class="whats-new__name">Austan D. Goolsbee</span>
+          <span class="whats-new__score t-hawk">+0.50</span>
+          <span class="whats-new__label">hawkish</span>
+        </a>
+        <a class="whats-new__row" href="https://www.newyorkfed.org/newsevents/speeches/2026/wil260504" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-05-04</span>
+          <span class="whats-new__name">John C. Williams</span>
+          <span class="whats-new__score t-neutral">+0.00</span>
+          <span class="whats-new__label">neutral</span>
+        </a>
+        <a class="whats-new__row" href="https://www.minneapolisfed.org/article/2026/why-i-dissented" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-05-01</span>
+          <span class="whats-new__name">Neel Kashkari</span>
+          <span class="whats-new__score t-hawk">+0.50</span>
+          <span class="whats-new__label">hawkish</span>
+        </a>
+        <a class="whats-new__row" href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-04-29</span>
+          <span class="whats-new__name">FOMC Statement <span class="whats-new__kind">FOMC statement</span></span>
+          <span class="whats-new__score t-neutral">−0.30</span>
+          <span class="whats-new__label">neutral</span>
+        </a>
+        <a class="whats-new__row" href="https://www.federalreserve.gov/mediacenter/files/FOMCpresconf20260429.pdf" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-04-29</span>
+          <span class="whats-new__name">Press Conference <span class="whats-new__kind">FOMC presser</span></span>
+          <span class="whats-new__score t-hawk">+0.50</span>
+          <span class="whats-new__label">hawkish</span>
+        </a>
+        <a class="whats-new__row" href="https://www.federalreserve.gov/newsevents/speech/waller20260417a.htm" target="_blank" rel="noopener">
+          <span class="whats-new__date">2026-04-17</span>
+          <span class="whats-new__name">Christopher J. Waller</span>
+          <span class="whats-new__score t-hawk">+0.50</span>
+          <span class="whats-new__label">hawkish</span>
+        </a></div>
 </section>
 
 
