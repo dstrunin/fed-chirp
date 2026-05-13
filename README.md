@@ -25,6 +25,18 @@ Personal monitor of Federal Reserve communications. Scrapes Board governor speec
    - **Recent speeches** — last 30 with rationale and link.
 7. **Emails** an HTML digest when alerts fire, with diff and explanatory notes inlined for FOMC statement alerts.
 
+## Disclaimer
+
+Fed Chirp is an independent personal project and is not affiliated with, endorsed by, or representative of the Federal Reserve System, any Federal Reserve Bank, the Federal Open Market Committee, or any other government body. The "Fed Chirp" name and any aesthetic resemblance to official Federal Reserve material are coincidental — no claim of affiliation is made or implied.
+
+Hawk/dove scores shown in this project are **interpretations produced by a large language model** (Claude Sonnet) against the fixed rubric in [`src/fed_chirp/scoring/prompt.py`](src/fed_chirp/scoring/prompt.py). They reflect that rubric's reading of each document — not the speaker's intent, not any official position, and not consensus economic analysis. The rubric can be wrong; the model can be wrong; the scraped source can be wrong or incomplete. Treat every number as a heuristic.
+
+**Nothing in this repository or on the dashboard is investment, financial, legal, tax, or other professional advice.** Do not use these scores to make trading or policy decisions on their own.
+
+Coverage depends on best-effort web scraping of public sources (federalreserve.gov RSS, each regional Reserve Bank's website, YouTube auto-captions for some video appearances). Sources occasionally change layout, restrict access, or stop publishing; data may therefore be missing, stale, or duplicated.
+
+Code and data are provided as-is with no warranty.
+
 ## Setup
 
 ```bash

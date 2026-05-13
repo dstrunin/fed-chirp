@@ -1583,6 +1583,20 @@ def _footer_section(now: dt.datetime) -> str:
       </ul>
     </div>
   </div>
+  <div class="disclaimer">
+    <div class="eyebrow">Disclaimer</div>
+    <p>
+      Fed Chirp is an independent personal project and is not affiliated
+      with, endorsed by, or representative of the Federal Reserve System,
+      any Federal Reserve Bank, or any other government body. Scores are
+      interpretations produced by a large language model against a fixed
+      rubric (see <a href="#method">§ 05 Method</a>) — they reflect that
+      rubric's reading of each document, not the speaker's intent or any
+      official position. Nothing on this site is investment, financial,
+      legal, or other professional advice. Coverage depends on best-effort
+      web scraping and may be incomplete, stale, or wrong. Use accordingly.
+    </p>
+  </div>
   <div class="footer__bottom">
     <span>© {now.year} FED CHIRP · BUILT FOR ONE READER, USEFUL TO MORE</span>
     <span>NEXT SCAN · WEEKDAYS 18:30 ET</span>
@@ -2359,6 +2373,26 @@ a {{ color: inherit; }}
   font-family: var(--mono); font-size: 11px;
   letter-spacing: 0.04em; color: var(--mute);
 }}
+.disclaimer {{
+  padding: 28px 72px 24px;
+  border-top: 1px solid var(--rule);
+  max-width: 1100px;
+  margin: 0 auto;
+}}
+.disclaimer .eyebrow {{ display: block; margin-bottom: 10px; }}
+.disclaimer p {{
+  color: var(--mute);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 820px;
+}}
+.disclaimer a {{
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--rule-2);
+  text-decoration: none;
+}}
+.disclaimer a:hover {{ color: var(--ink); border-bottom-color: var(--ink); }}
 
 /* ---------- FOMC market reactions ---------- */
 .rxn-wrap {{
@@ -2762,6 +2796,8 @@ table.rxn td.bucket-cell {{ text-align: center; }}
     flex-direction: column;
     gap: 6px;
   }}
+  .disclaimer {{ padding: 24px 20px 18px; }}
+  .disclaimer p {{ font-size: 12px; }}
 
   /* Reactions table → cards on mobile (uses .cards class behavior) */
   table.rxn thead {{ display: none; }}
