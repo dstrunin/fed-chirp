@@ -41,7 +41,16 @@ jobs:
           GMAIL_SENDER: ${{ secrets.GMAIL_SENDER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_RECIPIENT: ${{ secrets.ALERT_RECIPIENT }}
-        run: fed-chirp scan
+        run: fed-chirp scan --summary-file /tmp/scan-summary.md
+
+      - name: Append scan summary to workflow run page
+        if: always()
+        run: |
+          if [ -f /tmp/scan-summary.md ]; then
+            cat /tmp/scan-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "scan-summary.md not produced (scan likely failed before summary write)" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Commit updated DB + dashboard
         run: |
@@ -51,6 +60,10 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "scan: $(date -u +%Y-%m-%dT%H:%MZ)"
+            if [ -f /tmp/scan-summary.md ]; then
+              git commit -F /tmp/scan-summary.md
+            else
+              git commit -m "scan: $(date -u +%Y-%m-%dT%H:%MZ)"
+            fi
             git push
           fi

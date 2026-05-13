@@ -442,6 +442,28 @@ class Database:
             ).fetchall()
         return [_row_to_score(r) for r in rows]
 
+    def scores_since(self, asof: dt.datetime) -> list[StoredScore]:
+        """Return all StoredScores with `scored_at` >= `asof`, oldest first.
+
+        Used by `fed-chirp scan` to build a "what landed this run" summary
+        once the scan completes. `asof` should be a timezone-aware UTC
+        datetime; we compare against the stored ISO string lexically (the
+        scored_at values are written in UTC ISO 8601 elsewhere in this
+        module, so lexical comparison is equivalent to time comparison).
+        """
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT s.url, s.speaker_key, s.speech_date, s.doc_type, s.title,
+                          sc.score, sc.label, sc.rationale, sc.key_quotes,
+                          sc.model, sc.scored_at, sc.diff_notes
+                   FROM speeches s
+                   JOIN speech_scores sc ON sc.speech_url = s.url
+                   WHERE sc.scored_at >= ?
+                   ORDER BY sc.scored_at""",
+                (asof.isoformat(),),
+            ).fetchall()
+        return [_row_to_score(r) for r in rows]
+
     # ---- processing skips (transparency log) ----
 
     def record_skip(
