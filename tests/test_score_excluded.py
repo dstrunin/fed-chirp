@@ -6,7 +6,7 @@ import datetime as dt
 
 import pytest
 
-from fed_chirp.scoring.claude_scorer import ScoreResult
+from fed_chirp.scoring.scorer import ScoreResult
 from fed_chirp.storage.db import Database, StoredSpeech
 
 
@@ -32,7 +32,7 @@ def test_score_result_accepts_none():
         label="excluded",
         rationale="page is empty",
         key_quotes=[],
-        model="claude-sonnet-4-6",
+        model="gpt-5.5",
         scored_at=dt.datetime.now(dt.timezone.utc),
     )
     assert r.score is None

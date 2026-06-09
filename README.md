@@ -1,6 +1,6 @@
 # Fed Chirp
 
-Personal monitor of Federal Reserve communications. Scrapes Board governor speeches and FOMC documents, scores each one for hawkish/dovish tone via the Claude API, and reports tone shifts as alerts and a local dashboard.
+Personal monitor of Federal Reserve communications. Scrapes Board governor speeches and FOMC documents, scores each one for hawkish/dovish tone via local Hermes/Codex auth, and reports tone shifts as alerts and a local dashboard.
 
 ## What it covers
 
@@ -13,8 +13,8 @@ Personal monitor of Federal Reserve communications. Scrapes Board governor speec
 ## What it does
 
 1. **Discovers** new docs from federalreserve.gov RSS feeds (per-speaker for speeches; the consolidated `press_monetary` feed for FOMC docs). Press-conference URLs are derived from each statement's date and probed with HEAD.
-2. **Scores** each doc on a -2 (very dovish) to +2 (very hawkish) scale via Claude Sonnet 4.6 with prompt caching on the rubric. The user-message header switches per doc-type so the model knows it's reading a speech vs a statement vs minutes vs a press-conference transcript.
-3. **Annotates** new FOMC statements with 3-5 bullet notes explaining what specific wording changed vs the previous statement and what each shift signals (separate Claude call).
+2. **Scores** each doc on a -2 (very dovish) to +2 (very hawkish) scale via Hermes, using the locally configured Codex OAuth provider by default. The prompt header switches per doc-type so the model knows it's reading a speech vs a statement vs minutes vs a press-conference transcript.
+3. **Annotates** new FOMC statements with 3-5 bullet notes explaining what specific wording changed vs the previous statement and what each shift signals (separate Hermes call).
 4. **Persists** everything in SQLite at `data/fed_chirp.sqlite`, keyed on URL with a `doc_type` discriminator.
 5. **Analyzes** for tone shifts:
    - *Speeches*: alert when |score − speaker's 90-day mean| ≥ 1.0 or |z| ≥ 1.5.
@@ -29,7 +29,7 @@ Personal monitor of Federal Reserve communications. Scrapes Board governor speec
 
 Fed Chirp is an independent personal project and is not affiliated with, endorsed by, or representative of the Federal Reserve System, any Federal Reserve Bank, the Federal Open Market Committee, or any other government body. The "Fed Chirp" name and any aesthetic resemblance to official Federal Reserve material are coincidental — no claim of affiliation is made or implied.
 
-Hawk/dove scores shown in this project are **interpretations produced by a large language model** (Claude Sonnet) against the fixed rubric in [`src/fed_chirp/scoring/prompt.py`](src/fed_chirp/scoring/prompt.py). They reflect that rubric's reading of each document — not the speaker's intent, not any official position, and not consensus economic analysis. The rubric can be wrong; the model can be wrong; the scraped source can be wrong or incomplete. Treat every number as a heuristic.
+Hawk/dove scores shown in this project are **interpretations produced by a large language model** via Hermes against the fixed rubric in [`src/fed_chirp/scoring/prompt.py`](src/fed_chirp/scoring/prompt.py). They reflect that rubric's reading of each document — not the speaker's intent, not any official position, and not consensus economic analysis. The rubric can be wrong; the model can be wrong; the scraped source can be wrong or incomplete. Treat every number as a heuristic.
 
 **Nothing in this repository or on the dashboard is investment, financial, legal, tax, or other professional advice.** Do not use these scores to make trading or policy decisions on their own.
 
@@ -50,8 +50,10 @@ playwright install chromium    # one-time: 4 of the 12 regional banks (Chicago,
                                # extract them. PlaywrightContext prefers your
                                # installed Chrome, falling back to the bundled
                                # chromium-headless-shell.
-cp .env.example .env   # fill in ANTHROPIC_API_KEY, GMAIL_APP_PASSWORD, etc.
+cp .env.example .env   # fill in Gmail settings; Hermes defaults use local Codex auth
 ```
+
+Fed Chirp shells out to `hermes chat -Q --provider openai-codex -m gpt-5.5` for scoring. Override with `FED_CHIRP_HERMES_BIN`, `FED_CHIRP_HERMES_PROVIDER`, `FED_CHIRP_HERMES_MODEL`, or `FED_CHIRP_HERMES_TIMEOUT` if your local Hermes setup differs.
 
 ## Usage
 
@@ -72,9 +74,9 @@ Open `dashboard/index.html` in any browser to see the big-picture view.
 
 Copy `launchd/com.user.fedchirp.plist` into `~/Library/LaunchAgents/` and load it with `launchctl load`. Runs Mon-Fri at 18:30 local.
 
-## Cost
+## Cost / execution model
 
-Steady-state Claude API spend is roughly **$5-10/year**: dominated by speech bodies (governor speeches scored at ~$0.016/each, ~5-10 new speeches/week). FOMC docs add ~$1.50/year. Diff-note annotation adds another ~$0.10/year. Prompt caching keeps the rubric warm across each scan.
+Scoring is local-first: Fed Chirp calls your local Hermes CLI, which can use Codex OAuth instead of a paid project API key. That means scheduled scans should run on the Mac where Hermes is authenticated; the GitHub workflow is kept manual because GitHub Actions does not have access to local Codex OAuth.
 
 ## Roadmap
 

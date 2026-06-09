@@ -7,19 +7,31 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/dima/Desktop/fed_chirp/.venv/bin/python</string>
+        <string>/Users/dima/Desktop/Archives/fed_chirp/.venv/bin/python</string>
         <string>-m</string>
         <string>fed_chirp.cli</string>
         <string>scan</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/dima/Desktop/fed_chirp</string>
+    <string>/Users/dima/Desktop/Archives/fed_chirp</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>FED_CHIRP_HERMES_BIN</key>
+        <string>/Users/dima/.local/bin/hermes</string>
+        <key>FED_CHIRP_HERMES_PROVIDER</key>
+        <string>openai-codex</string>
+        <key>FED_CHIRP_HERMES_MODEL</key>
+        <string>gpt-5.5</string>
+        <key>FED_CHIRP_HERMES_TIMEOUT</key>
+        <string>300</string>
+    </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/dima/Desktop/fed_chirp/data/fedchirp.out.log</string>
+    <string>/Users/dima/Desktop/Archives/fed_chirp/data/fedchirp.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/dima/Desktop/fed_chirp/data/fedchirp.err.log</string>
+    <string>/Users/dima/Desktop/Archives/fed_chirp/data/fedchirp.err.log</string>
 
     <!-- Mon-Fri at 18:30 local -->
     <key>StartCalendarInterval</key>

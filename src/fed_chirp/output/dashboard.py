@@ -1434,8 +1434,8 @@ def _method_section() -> str:
       <h2 class="section__title">How a speech<br/>becomes a <em>number</em>.</h2>
     </div>
     <p class="section__lede">
-      Each document is scored by Claude Sonnet 4.6 against a fixed rubric.
-      The rubric stays cached across scans; the only thing that changes is
+      Each document is scored by Hermes against a fixed rubric.
+      The rubric is reused across scans; the only thing that changes is
       the doc-type header on the user message — speech vs statement vs
       minutes vs press-conference transcript.
     </p>
@@ -1454,7 +1454,7 @@ def _method_section() -> str:
     <div class="method__card">
       <div class="step">Step 03</div>
       <h4>Annotate</h4>
-      <p>For each new FOMC statement, a separate Claude pass produces 3–5 bullet diff notes against the previous statement, naming the specific wording shifts that matter.</p>
+      <p>For each new FOMC statement, a separate Hermes pass produces 3–5 bullet diff notes against the previous statement, naming the specific wording shifts that matter.</p>
     </div>
     <div class="method__card">
       <div class="step">Step 04</div>

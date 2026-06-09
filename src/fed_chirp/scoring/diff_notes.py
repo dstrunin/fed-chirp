@@ -1,12 +1,8 @@
-"""Auto-generate explanatory notes for FOMC-statement diffs.
+"""Auto-generate explanatory notes for FOMC-statement diffs via Hermes.
 
 Statements are ~400 words. The Fed-watcher exercise is reading the diff
 vs the prior statement and translating wording shifts into policy signal
 ("dropped 'somewhat' qualifying inflation → less hedged on persistence").
-This module asks Claude to do exactly that translation: take both
-statements as input, produce 3-5 bullet notes that each (a) cite the
-specific change and (b) gloss what it signals.
-
 Stored as JSON list-of-strings on `speech_scores.diff_notes`.
 """
 
@@ -14,12 +10,11 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import os
-import time
+from dataclasses import replace
 
-from anthropic import Anthropic, APIStatusError, RateLimitError
+from .hermes_client import HermesClient
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_MODEL = "gpt-5.5"
 MAX_OUTPUT_TOKENS = 700
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0
@@ -93,13 +88,12 @@ def annotate_statement_diff(
     current_date: dt.date,
     current_score: float,
     model: str = DEFAULT_MODEL,
-    client: Anthropic | None = None,
+    client: HermesClient | None = None,
 ) -> list[str]:
     if client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY not set")
-        client = Anthropic(api_key=api_key)
+        client = HermesClient.from_env()
+    if model != DEFAULT_MODEL and client.model != model:
+        client = replace(client, model=model)
 
     user_text = (
         f"Prior statement — {prior_date.isoformat()} — scored {prior_score:+.2f}\n"
@@ -108,58 +102,42 @@ def annotate_statement_diff(
         f"Current statement — {current_date.isoformat()} — scored {current_score:+.2f}\n"
         f"---\n{current_body}\n"
     )
+    prompt = _build_diff_prompt(user_text)
 
-    last_err: Exception | None = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=MAX_OUTPUT_TOKENS,
-                system=[
-                    {
-                        "type": "text",
-                        "text": SYSTEM_PROMPT,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[{"role": "user", "content": user_text}],
-            )
-            break
-        except (RateLimitError, APIStatusError) as exc:
-            last_err = exc
-            if attempt == MAX_RETRIES - 1:
-                raise
-            time.sleep(RETRY_BASE_DELAY * (2**attempt))
-    else:
-        raise RuntimeError(f"Exhausted retries: {last_err}")
-
-    raw = "".join(b.text for b in response.content if b.type == "text").strip()
-    parsed = _extract_json(raw)
+    parsed = client.complete_json(prompt)
     notes = parsed.get("notes")
     if not isinstance(notes, list):
-        raise ValueError(f"Expected JSON object with 'notes' list, got: {raw[:200]!r}")
+        raise ValueError("Expected JSON object with 'notes' list")
     return [str(n) for n in notes]
 
 
+def _build_diff_prompt(user_text: str) -> str:
+    return (
+        "You are running inside Fed Chirp, a local Federal Reserve communications "
+        "monitor. Follow the instructions exactly and return JSON only.\n\n"
+        "# Diff-note instructions\n"
+        f"{SYSTEM_PROMPT}\n\n"
+        "# Statements to compare\n"
+        f"{user_text}\n\n"
+        "Return ONE JSON object and nothing else. Do not use markdown fences."
+    )
+
+
 def _extract_json(s: str) -> dict:
+    """Legacy parser kept for older tests/imports; HermesClient handles new calls."""
     s = s.strip()
     if s.startswith("```"):
         first_newline = s.find("\n")
         if first_newline != -1:
-            s = s[first_newline + 1 :]
+            s = s[first_newline + 1:]
         if s.endswith("```"):
             s = s[:-3]
         s = s.strip()
     try:
         return json.loads(s)
     except json.JSONDecodeError:
-        # Fallback: the model occasionally emits unescaped double quotes
-        # inside the bullet strings. Extract each bullet with a regex that
-        # matches a JSON-string-shaped run between `"` boundaries followed
-        # by `,` or `]`.
         import re as _re
         bullets = _re.findall(r'"((?:[^"\\]|\\.)*?)"\s*[,\]]', s, flags=_re.DOTALL)
-        # Drop any that look like the JSON key 'notes' itself.
         bullets = [b for b in bullets if b.strip().lower() != "notes"]
         if bullets:
             return {"notes": bullets}

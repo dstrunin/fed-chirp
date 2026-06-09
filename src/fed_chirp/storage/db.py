@@ -121,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_market_reactions_date ON market_reactions(meeting
 --   "fetch_failed"        -> exception during fetch (network, parse, etc.)
 --   "captions_unavailable"-> YouTube subtitles disabled/missing
 --   "filter_rejected"     -> speech-likeness filter said no (empty/short/nav)
---   "rubric_excluded"     -> Claude returned score=null (non-MP topic or junk)
+--   "rubric_excluded"     -> scoring rubric returned score=null (non-MP topic or junk)
 CREATE TABLE IF NOT EXISTS processing_skips (
     url            TEXT PRIMARY KEY,
     speaker_key    TEXT NOT NULL,

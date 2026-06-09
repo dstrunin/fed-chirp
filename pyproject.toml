@@ -5,10 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fed_chirp"
 version = "0.1.0"
-description = "Monitors Federal Reserve Board governor speeches; scores hawkish/dovish tone via Claude; reports tone shifts."
+description = "Monitors Federal Reserve communications; scores hawkish/dovish tone via Hermes; reports tone shifts."
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
     "feedparser>=6.0",

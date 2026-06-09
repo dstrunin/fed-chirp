@@ -33,7 +33,7 @@ from .output import diff as diff_render
 from .output.dashboard import FuturesContext
 from .output.email_report import AlertItem, FomcAlertItem, send_alerts
 from .scoring import speech_filter
-from .scoring.claude_scorer import score_speech
+from .scoring.scorer import score_speech
 from .scoring.diff_notes import annotate_statement_diff
 from .storage.db import Database, MarketReaction, StoredSpeech, content_hash
 from .utils.log import get_logger
@@ -481,7 +481,7 @@ def divergence_cmd(asof_str: str | None, config: Path, db_path: Path) -> None:
 @click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
 def annotate_diffs(db_path: Path) -> None:
     """Backfill diff notes for FOMC statements that have a prior in the DB
-    but no notes yet. One Claude call per statement."""
+    but no notes yet. One Hermes call per statement."""
     db = Database(db_path)
     pending = db.statements_missing_notes()
     log.info("annotate-diffs: %d statements missing notes", len(pending))
@@ -1054,7 +1054,7 @@ def rescore(
 ) -> None:
     """Re-evaluate existing speech bodies against the current rubric.
 
-    Calls the Claude API for each row. Use after a rubric change to apply
+    Calls Hermes for each row. Use after a rubric change to apply
     new scoring to historical speeches. Only doc_type='speech' rows are
     processed (FOMC docs bypass).
     """

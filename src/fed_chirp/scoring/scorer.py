@@ -1,22 +1,14 @@
-"""Score a Federal Reserve speech for hawkish/dovish tone via Claude API.
-
-Uses prompt caching on the system block so the rubric stays warm across the
-many speeches scored in a single `scan` or `backfill` run.
-"""
+"""Score Federal Reserve communications for hawkish/dovish tone via Hermes."""
 
 from __future__ import annotations
 
 import datetime as dt
-import json
-import os
-import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from anthropic import Anthropic, APIStatusError, RateLimitError
-
+from .hermes_client import HermesClient
 from .prompt import SYSTEM_PROMPT
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_MODEL = "gpt-5.5"
 MAX_OUTPUT_TOKENS = 800
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0
@@ -41,13 +33,12 @@ def score_speech(
     *,
     doc_type: str = "speech",
     model: str = DEFAULT_MODEL,
-    client: Anthropic | None = None,
+    client: HermesClient | None = None,
 ) -> ScoreResult:
     if client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY not set")
-        client = Anthropic(api_key=api_key)
+        client = HermesClient.from_env()
+    if model != DEFAULT_MODEL and client.model != model:
+        client = replace(client, model=model)
 
     user_text = (
         f"{_doc_header(doc_type, speaker_name, speaker_role, speech_date)}"
@@ -56,33 +47,9 @@ def score_speech(
         f"---\n\n"
         f"{body}"
     )
+    prompt = _build_score_prompt(user_text)
 
-    last_err: Exception | None = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=MAX_OUTPUT_TOKENS,
-                system=[
-                    {
-                        "type": "text",
-                        "text": SYSTEM_PROMPT,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[{"role": "user", "content": user_text}],
-            )
-            break
-        except (RateLimitError, APIStatusError) as exc:
-            last_err = exc
-            if attempt == MAX_RETRIES - 1:
-                raise
-            time.sleep(RETRY_BASE_DELAY * (2**attempt))
-    else:
-        raise RuntimeError(f"Exhausted retries: {last_err}")
-
-    raw = "".join(block.text for block in response.content if block.type == "text").strip()
-    parsed = _extract_json(raw)
+    parsed = client.complete_json(prompt)
     raw_score = parsed.get("score")
     score: float | None = None if raw_score is None else float(raw_score)
     return ScoreResult(
@@ -90,8 +57,20 @@ def score_speech(
         label=str(parsed["label"]),
         rationale=str(parsed["rationale"]),
         key_quotes=list(parsed.get("key_quotes", [])),
-        model=model,
+        model=client.model,
         scored_at=dt.datetime.now(dt.timezone.utc),
+    )
+
+
+def _build_score_prompt(user_text: str) -> str:
+    return (
+        "You are running inside Fed Chirp, a local Federal Reserve communications "
+        "monitor. Follow the rubric exactly and return JSON only.\n\n"
+        "# Scoring rubric\n"
+        f"{SYSTEM_PROMPT}\n\n"
+        "# Document to score\n"
+        f"{user_text}\n\n"
+        "Return ONE JSON object and nothing else. Do not use markdown fences."
     )
 
 
@@ -140,20 +119,3 @@ def _scoring_directive(doc_type: str) -> str:
             "Q&A answers often shift more weight than the prepared statement."
         )
     return "Score the speaker's policy stance."
-
-
-def _extract_json(s: str) -> dict:
-    """Strip an optional ```json fence and parse the JSON object inside."""
-    s = s.strip()
-    if s.startswith("```"):
-        # Drop the opening fence (with optional language tag) and the closing fence.
-        first_newline = s.find("\n")
-        if first_newline != -1:
-            s = s[first_newline + 1 :]
-        if s.endswith("```"):
-            s = s[: -3]
-        s = s.strip()
-    try:
-        return json.loads(s)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Model returned non-JSON: {s[:200]!r}") from exc
