@@ -190,29 +190,27 @@ def current_rate_from_chain(
 ) -> float | None:
     """Estimate the current effective fed funds rate from the chain.
 
-    Strategy: find the earliest month in the chain that contains no FOMC
-    meeting. The implied avg rate for that month equals the constant rate
-    over the month, which is the current policy rate going into it.
-
-    If the front month has a meeting (e.g. you're scanning during a
-    meeting month), we walk forward until we hit the first no-meeting
-    month. Should usually be within 1 month.
+    Prefer the front contract month that contains `asof`. That is the closest
+    market-implied average to today's effective rate and avoids a bad bias from
+    looking past one or more upcoming meetings. The previous implementation
+    picked the first future month with no FOMC meeting; after a meeting-month
+    front contract, that future no-meeting month already embeds the expected
+    post-meeting path and made the *next* meeting look like a large cut/hike.
     """
     if not chain:
         return None
     asof = asof or dt.date.today()
     months_sorted = sorted(chain.keys())
-    meeting_months = {f"{m.year:04d}-{m.month:02d}" for m in meetings if m >= asof}
+    current_month = f"{asof.year:04d}-{asof.month:02d}"
+    if current_month in chain:
+        return chain[current_month]
+
     for month_str in months_sorted:
         # Skip months strictly before "now" — they're stale settlement.
         y, mn = int(month_str[0:4]), int(month_str[5:7])
-        if dt.date(y, mn, 1) < dt.date(asof.year, asof.month, 1):
-            continue
-        if month_str not in meeting_months:
+        if dt.date(y, mn, 1) >= dt.date(asof.year, asof.month, 1):
             return chain[month_str]
-    # All months have meetings; fall back to the front month and accept
-    # the small bias from intra-month meeting weighting.
-    return chain[months_sorted[0]]
+    return chain[months_sorted[-1]]
 
 
 def implied_rate_n_months_out(
