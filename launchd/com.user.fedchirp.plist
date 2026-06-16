@@ -7,10 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/dima/Desktop/Archives/fed_chirp/.venv/bin/python</string>
-        <string>-m</string>
-        <string>fed_chirp.cli</string>
-        <string>scan</string>
+        <string>/Users/dima/Desktop/Archives/fed_chirp/scripts/scan_and_publish.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -18,6 +15,8 @@
 
     <key>EnvironmentVariables</key>
     <dict>
+        <key>PATH</key>
+        <string>/Users/dima/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>FED_CHIRP_HERMES_BIN</key>
         <string>/Users/dima/.local/bin/hermes</string>
         <key>FED_CHIRP_HERMES_PROVIDER</key>
