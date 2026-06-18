@@ -851,26 +851,39 @@ def _refresh_market_reactions(db: Database, *, force: bool = False) -> None:
     fetched_at = now_utc
 
     pending_dates = db.meeting_dates_with_presser()
+    existing = {
+        (r.meeting_date, r.ticker): r
+        for r in db.get_market_reactions()
+    }
     refreshed = 0
     for meeting_date in pending_dates:
         stmt_dt, presser_dt = market_reaction_analysis.fomc_event_times(meeting_date)
         eod_dt, nextday_dt = market_reaction_analysis.cash_close_times(meeting_date)
 
-        if nextday_dt > now_utc:
-            log.info("market reactions: skipping %s (next-day close not yet reached)",
+        if eod_dt > now_utc:
+            log.info("market reactions: skipping %s (same-day close not yet reached)",
                      meeting_date)
             continue
 
-        if not force and all(
-            db.has_market_reaction(meeting_date, t) for t in _REACTION_TICKERS
-        ):
+        nextday_ready = nextday_dt <= now_utc
+        fetch_end_dt = nextday_dt if nextday_ready else eod_dt
+
+        def _is_complete(ticker: str) -> bool:
+            r = existing.get((meeting_date, ticker))
+            if r is None:
+                return False
+            if nextday_ready:
+                return r.nextday_pct_change is not None
+            return r.eod_pct_change is not None
+
+        if not force and all(_is_complete(t) for t in _REACTION_TICKERS):
             continue
 
         for ticker in _REACTION_TICKERS:
-            if not force and db.has_market_reaction(meeting_date, ticker):
+            if not force and _is_complete(ticker):
                 continue
             try:
-                bars = market_data.fetch_window(ticker, stmt_dt, nextday_dt)
+                bars = market_data.fetch_window(ticker, stmt_dt, fetch_end_dt)
             except Exception as exc:
                 log.exception("market data fetch failed: %s %s — %s",
                               ticker, meeting_date, exc)
@@ -882,7 +895,10 @@ def _refresh_market_reactions(db: Database, *, force: bool = False) -> None:
 
             stmt_m = market_reaction_analysis.compute_window(bars, stmt_dt, presser_dt)
             eod_m = market_reaction_analysis.compute_window(bars, presser_dt, eod_dt)
-            nxt_m = market_reaction_analysis.compute_window(bars, presser_dt, nextday_dt)
+            nxt_m = (
+                market_reaction_analysis.compute_window(bars, presser_dt, nextday_dt)
+                if nextday_ready else None
+            )
 
             def _w(m, attr):
                 return getattr(m, attr) if m else None
