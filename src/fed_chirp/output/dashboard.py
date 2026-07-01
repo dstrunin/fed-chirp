@@ -2,9 +2,8 @@
 
 Phase 6: editorial redesign — paper-cream palette, Instrument Serif +
 IBM Plex Sans + JetBrains Mono typography, marketing-style layout
-(topbar + marquee ticker + hero with reading card + section frames +
-method cards + CTA + footer). Single-file inline HTML/CSS/SVG; only
-external assets are Google Fonts.
+(topbar + hero with reading card + section frames + method cards + CTA +
+footer). Single-file inline HTML/CSS/SVG; only external assets are Google Fonts.
 
 Mobile uses a single responsive layout with @media (max-width: 720px).
 """
@@ -365,7 +364,6 @@ def render(
     now_utc = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
 
     topbar_html = _topbar_section()
-    ticker_html = _ticker_section(meetings, speech_scores, futures_ctx)
     hero_html = _hero_section(meetings, len(scores), len(governor_speakers), now_utc)
     whats_new_html = _whats_new_section(scores, speakers_by_key)
     pulse_html = _fomc_pulse_section(meetings)
@@ -385,7 +383,6 @@ def render(
     out_path.write_text(
         _PAGE.format(
             topbar=topbar_html,
-            ticker=ticker_html,
             hero=hero_html,
             whats_new=whats_new_html,
             pulse=pulse_html,
@@ -430,62 +427,6 @@ def _topbar_section() -> str:
     <span></span><span></span><span></span>
   </button>
 </header>
-"""
-
-
-# ---------- section: ticker ----------
-
-def _ticker_section(
-    meetings: list[_Meeting],
-    speech_scores: list[StoredScore],
-    futures_ctx: FuturesContext | None,
-) -> str:
-    """Marquee with latest meeting + 6 most recent speakers + market data."""
-    items: list[str] = []
-    latest = meetings[0] if meetings else None
-    if latest and latest.combined is not None:
-        items.append(
-            f'<span class="ticker__item"><span class="label">FOMC '
-            f'{_short_date(latest.meeting_date)}</span>'
-            f'<span class="{_polarity_class(latest.combined)}">{_format_score(latest.combined)}</span>'
-            + (f'<span class="label">drift</span>'
-               f'<span class="{_polarity_class(latest.drift)}">{_format_score(latest.drift)}</span>'
-               if latest.drift is not None else '')
-            + '</span>'
-        )
-    for s in speech_scores[:6]:
-        last = s.speaker_key.rsplit("_", 1)[-1].upper()
-        items.append(
-            f'<span class="ticker__item"><span class="label">{html.escape(last)}</span>'
-            f'<span class="{_polarity_class(s.score)}">{_format_score(s.score)}</span>'
-            f'<span class="label">{_short_date(s.speech_date)}</span></span>'
-        )
-    if futures_ctx and futures_ctx.current_rate is not None:
-        items.append(
-            f'<span class="ticker__item"><span class="label">EFFR</span>'
-            f'<span>{futures_ctx.current_rate:.3f}%</span></span>'
-        )
-        if futures_ctx.chain and futures_ctx.chain_settle_date:
-            r12 = futures_analysis.implied_rate_n_months_out(
-                futures_ctx.chain, 12, futures_ctx.chain_settle_date
-            )
-            if r12 is not None:
-                bp = (r12 - futures_ctx.current_rate) * 100.0
-                cls = "t-hawk" if bp > 0.5 else ("t-dove" if bp < -0.5 else "t-neutral")
-                sign = "+" if bp >= 0 else "−"
-                items.append(
-                    f'<span class="ticker__item"><span class="label">12M IMPLIED</span>'
-                    f'<span class="{cls}">{sign}{abs(bp):.1f} bp</span></span>'
-                )
-
-    if not items:
-        return ""
-    block = '<span class="ticker__sep">·</span>'.join(items)
-    track = block + '<span class="ticker__sep">·</span>' + block
-    return f"""
-<div class="ticker" aria-hidden="true">
-  <div class="ticker__track">{track}</div>
-</div>
 """
 
 
@@ -1791,31 +1732,6 @@ a {{ color: inherit; }}
 .spark--hawk .spark__line, .spark--hawk .spark__dot {{ stroke: var(--hawk); fill: var(--hawk); }}
 .spark--dove .spark__line, .spark--dove .spark__dot {{ stroke: var(--dove); fill: var(--dove); }}
 
-/* ticker */
-@keyframes ticker-roll {{
-  from {{ transform: translateX(0); }}
-  to   {{ transform: translateX(-50%); }}
-}}
-.ticker {{
-  overflow: hidden;
-  border-top: 1px solid var(--rule-2);
-  border-bottom: 1px solid var(--rule-2);
-  background: var(--paper);
-}}
-.ticker__track {{
-  display: flex; gap: 48px; padding: 12px 0;
-  width: max-content;
-  animation: ticker-roll 80s linear infinite;
-}}
-.ticker__item {{
-  font-family: var(--mono); font-size: 12px;
-  color: var(--ink);
-  display: inline-flex; align-items: center; gap: 10px;
-  white-space: nowrap;
-}}
-.ticker__item .label {{ color: var(--mute); }}
-.ticker__sep {{ color: var(--rule-2); }}
-
 /* logomark */
 .logomark {{
   display: inline-flex; align-items: baseline; gap: 6px;
@@ -2812,8 +2728,6 @@ table.rxn td.bucket-cell {{ text-align: center; }}
   .menubtn--open span:nth-child(2) {{ opacity: 0; }}
   .menubtn--open span:nth-child(3) {{ transform: translateY(-4.5px) rotate(-45deg); }}
 
-  .ticker__track {{ animation-duration: 60s; gap: 28px; padding: 9px 0; }}
-  .ticker__item, .ticker {{ font-size: 11px; }}
 
   .hero {{
     padding: 36px 20px 28px;
@@ -3025,7 +2939,6 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 }}
 
 @media (prefers-reduced-motion: reduce) {{
-  .ticker__track {{ animation: none; }}
   .pulse-dot {{ animation: none; }}
   .btn:hover {{ transform: none; }}
 }}
@@ -3033,7 +2946,6 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 </head>
 <body>
 {topbar}
-{ticker}
 {hero}
 {whats_new}
 {pulse}
