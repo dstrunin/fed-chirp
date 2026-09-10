@@ -8,9 +8,10 @@ on the meeting day, when it shifts to the new policy rate.
 
 Standard CME FedWatch convention (the one we mirror):
 
-    For meeting on day D in month M of length N:
-        implied_avg(M) = (rate_before * (D-1) + rate_after * (N-D+1)) / N
-    →   rate_after = (implied_avg(M) * N - rate_before * (D-1)) / (N-D+1)
+    For meeting decision on day D in month M of length N, the new target
+    takes effect the following day:
+        implied_avg(M) = (rate_before * D + rate_after * (N-D)) / N
+    →   rate_after = (implied_avg(M) * N - rate_before * D) / (N-D)
 
 Per-meeting move probabilities assume 25bp increments. The implied rate
 change `delta` is decomposed into linear weights between the two nearest
@@ -99,13 +100,12 @@ def implied_rates_at_meetings(
         if d <= 0 or d > n_days:
             continue
 
-        # rate_after is what we solve for; rate_before is the running rate
-        # going into this month.
-        if d == 1:
-            # Meeting on day 1 → rate_after governs the whole month.
-            rate_after = avg
-        else:
-            rate_after = (avg * n_days - rate_running * (d - 1)) / (n_days - d + 1)
+        # The decision is announced during day D; the new effective rate
+        # applies from the following calendar day.
+        post_days = n_days - d
+        if post_days == 0:
+            continue
+        rate_after = (avg * n_days - rate_running * d) / post_days
 
         delta_bp = (rate_after - rate_running) * 100.0
         out.append(MeetingRate(
@@ -187,16 +187,16 @@ def current_rate_from_chain(
     chain: dict[str, float],
     meetings: list[dt.date],
     asof: dt.date | None = None,
+    observed_effr: float | None = None,
 ) -> float | None:
-    """Estimate the current effective fed funds rate from the chain.
+    """Return the observed EFFR, falling back to a chain estimate.
 
-    Prefer the front contract month that contains `asof`. That is the closest
-    market-implied average to today's effective rate and avoids a bad bias from
-    looking past one or more upcoming meetings. The previous implementation
-    picked the first future month with no FOMC meeting; after a meeting-month
-    front contract, that future no-meeting month already embeds the expected
-    post-meeting path and made the *next* meeting look like a large cut/hike.
+    The current-month futures contract is a monthly average. When an FOMC
+    meeting remains in that month it blends pre- and post-meeting rates, so it
+    cannot serve as the current rate for solving that meeting's probabilities.
     """
+    if observed_effr is not None:
+        return observed_effr
     if not chain:
         return None
     asof = asof or dt.date.today()

@@ -353,9 +353,15 @@ def futures_cmd(db_path: Path, refresh: bool) -> None:
     settle_date = chain_rows[0][2]
     all_meetings = db.all_meetings()
     upcoming = db.upcoming_meetings(asof=dt.date.today(), limit=8)
-    cur = futures_analysis.current_rate_from_chain(chain, all_meetings)
+    try:
+        effr = futures_fetch.fetch_effective_rate()
+    except Exception as exc:
+        raise click.ClickException(f"Could not fetch current EFFR: {exc}") from exc
+    cur = futures_analysis.current_rate_from_chain(
+        chain, all_meetings, observed_effr=effr.rate
+    )
     if cur is None:
-        raise click.ClickException("Could not derive current rate from chain.")
+        raise click.ClickException("Could not derive current rate.")
 
     click.echo(f"Settlement date: {settle_date.isoformat()}")
     click.echo(f"Current effective rate: {cur:.3f}%")
@@ -797,7 +803,14 @@ def _build_futures_context(db: Database) -> FuturesContext | None:
     settle_date = chain_rows[0][2]
     upcoming = db.upcoming_meetings(asof=dt.date.today(), limit=8)
     all_meetings = db.all_meetings()
-    cur = futures_analysis.current_rate_from_chain(chain, all_meetings)
+    try:
+        effr = futures_fetch.fetch_effective_rate()
+    except Exception as exc:
+        log.exception("EFFR fetch failed; omitting futures dashboard section: %s", exc)
+        return None
+    cur = futures_analysis.current_rate_from_chain(
+        chain, all_meetings, observed_effr=effr.rate
+    )
     return FuturesContext(
         chain=chain,
         chain_settle_date=settle_date,

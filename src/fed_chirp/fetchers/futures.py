@@ -14,13 +14,23 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
+from typing import Any
 
+import requests
 import yfinance as yf
+
+EFFR_URL = "https://markets.newyorkfed.org/api/rates/unsecured/effr/last/5.json"
 
 # Futures month codes (CME convention).
 _MONTH_CODES = ["F", "G", "H", "J", "K", "M", "N", "Q", "U", "V", "X", "Z"]
 
 CHAIN_LENGTH = 14  # months ahead
+
+
+@dataclass(frozen=True)
+class EffectiveRate:
+    effective_date: dt.date
+    rate: float
 
 
 @dataclass(frozen=True)
@@ -62,6 +72,31 @@ def symbol_to_month(symbol: str) -> str:
     # forward, so this is just a forward-looking heuristic.
     year = 2000 + yy if yy < 80 else 1900 + yy
     return f"{year:04d}-{month:02d}"
+
+
+def parse_latest_effr(payload: dict[str, Any]) -> EffectiveRate:
+    """Parse the newest official EFFR observation from New York Fed JSON."""
+    observations: list[EffectiveRate] = []
+    for row in payload.get("refRates", []):
+        if row.get("type") != "EFFR":
+            continue
+        try:
+            effective_date = dt.date.fromisoformat(str(row["effectiveDate"]))
+            rate = float(row["percentRate"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if 0.0 <= rate <= 20.0:
+            observations.append(EffectiveRate(effective_date=effective_date, rate=rate))
+    if not observations:
+        raise ValueError("No valid EFFR observations in New York Fed response")
+    return max(observations, key=lambda observation: observation.effective_date)
+
+
+def fetch_effective_rate(timeout: float = 15.0) -> EffectiveRate:
+    """Fetch the latest observed EFFR from the official New York Fed API."""
+    response = requests.get(EFFR_URL, timeout=timeout)
+    response.raise_for_status()
+    return parse_latest_effr(response.json())
 
 
 def fetch_chain(symbols: list[str]) -> list[Settlement]:
