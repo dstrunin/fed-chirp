@@ -60,3 +60,27 @@ def test_september_meeting_uses_observed_effr_not_blended_front_contract():
     assert meeting_rate.delta_bp == pytest.approx(15.0)
     assert probs.buckets[0.0] == pytest.approx(0.40)
     assert probs.buckets[25.0] == pytest.approx(0.60)
+
+
+def test_first_upcoming_meeting_keeps_observed_effr_after_prior_meeting_month():
+    """A now-past meeting must not turn its mixed monthly contract into EFFR."""
+    chain = {
+        "2026-09": 3.7475,  # blended pre/post September 16 meeting average
+        "2026-10": 3.8900,
+        "2026-11": 4.0350,
+    }
+    upcoming_meetings = [dt.date(2026, 10, 28)]
+
+    [october] = futures.implied_rates_at_meetings(
+        chain,
+        upcoming_meetings,
+        current_rate=3.88,
+    )
+    probs = futures.move_probabilities(october)
+
+    assert october.rate_before == pytest.approx(3.88)
+    assert october.rate_after == pytest.approx(3.9833333333)
+    assert october.delta_bp == pytest.approx(10.3333333333)
+    assert probs.buckets[0.0] == pytest.approx(0.5866666667)
+    assert probs.buckets[25.0] == pytest.approx(0.4133333333)
+    assert probs.buckets[-25.0] == 0.0

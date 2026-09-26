@@ -78,8 +78,15 @@ def implied_rates_at_meetings(
         meetings_by_month.setdefault(key, []).append(m)
     for k in meetings_by_month:
         meetings_by_month[k].sort()
+    first_meeting_month = min(meetings_by_month) if meetings_by_month else None
 
     for month_str in months_sorted:
+        # Preserve the observed current EFFR until the first upcoming meeting.
+        # A front/current-month contract can be a blend of rates from a meeting
+        # that already occurred earlier in the month; treating that monthly
+        # average as today's rate corrupts the next meeting's probability.
+        if first_meeting_month is not None and month_str < first_meeting_month:
+            continue
         avg = chain[month_str]
         year, mon = int(month_str[0:4]), int(month_str[5:7])
         n_days = calendar.monthrange(year, mon)[1]
