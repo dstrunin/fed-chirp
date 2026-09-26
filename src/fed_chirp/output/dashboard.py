@@ -75,6 +75,7 @@ class FuturesContext:
     chain_settle_date: dt.date | None
     upcoming_meetings: list[dt.date]
     current_rate: float | None
+    all_meetings: list[dt.date] | None = None
 
 
 @dataclass
@@ -974,7 +975,8 @@ def _market_path_section(
     if ctx.upcoming_meetings:
         try:
             meeting_rates = futures_analysis.implied_rates_at_meetings(
-                ctx.chain, ctx.upcoming_meetings, cur
+                ctx.chain, ctx.upcoming_meetings, cur,
+                known_meetings=ctx.all_meetings,
             )
         except Exception:
             meeting_rates = []

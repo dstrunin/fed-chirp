@@ -13,6 +13,11 @@ Standard CME FedWatch convention (the one we mirror):
         implied_avg(M) = (rate_before * D + rate_after * (N-D)) / N
     →   rate_after = (implied_avg(M) * N - rate_before * D) / (N-D)
 
+Months without a meeting are rate anchors. Their implied average pins the
+end rate of the preceding meeting month and the start rate of the following
+meeting month. Meeting months are then solved backward and forward from
+those anchors; observed EFFR is only a fallback when no anchor is available.
+
 Per-meeting move probabilities assume 25bp increments. The implied rate
 change `delta` is decomposed into linear weights between the two nearest
 25bp buckets — same simplification CME uses in their public FedWatch tool.
@@ -51,78 +56,145 @@ def implied_rates_at_meetings(
     chain: dict[str, float],
     meetings: list[dt.date],
     current_rate: float,
+    known_meetings: list[dt.date] | None = None,
 ) -> list[MeetingRate]:
-    """Walk the chain forward month-by-month, solving for the post-meeting
-    rate at each FOMC meeting.
+    """Bootstrap meeting rates from no-meeting-month anchors.
 
     Args:
         chain: {"YYYY-MM": implied_avg_rate_pct, ...}
         meetings: ordered list of FOMC meeting dates (already filtered to
                   upcoming ones if you only want forward-looking)
-        current_rate: current effective fed funds rate, in percent
+        current_rate: observed effective fed funds rate, used only if the
+                      available chain cannot anchor a meeting
+        known_meetings: complete calendar, including recently completed
+                        meetings, used to distinguish true anchor months
 
     Returns one MeetingRate per meeting that falls inside the chain's
     coverage window. Meetings outside the chain are silently skipped.
     """
-    out: list[MeetingRate] = []
     months_sorted = sorted(chain.keys())
-    if not months_sorted:
-        return out
-
-    rate_running = current_rate
+    if not months_sorted or not meetings:
+        return []
 
     # Index meetings by year-month for quick lookup.
     meetings_by_month: dict[str, list[dt.date]] = {}
-    for m in meetings:
+    for m in known_meetings or meetings:
         key = f"{m.year:04d}-{m.month:02d}"
         meetings_by_month.setdefault(key, []).append(m)
+    for m in meetings:
+        key = f"{m.year:04d}-{m.month:02d}"
+        if m not in meetings_by_month.setdefault(key, []):
+            meetings_by_month[key].append(m)
     for k in meetings_by_month:
         meetings_by_month[k].sort()
-    first_meeting_month = min(meetings_by_month) if meetings_by_month else None
+    first_meeting = min(meetings)
+    first_meeting_month = f"{first_meeting.year:04d}-{first_meeting.month:02d}"
 
-    for month_str in months_sorted:
-        # Preserve the observed current EFFR until the first upcoming meeting.
-        # A front/current-month contract can be a blend of rates from a meeting
-        # that already occurred earlier in the month; treating that monthly
-        # average as today's rate corrupts the next meeting's probability.
-        if first_meeting_month is not None and month_str < first_meeting_month:
+    def adjacent_month(month_str: str, offset: int) -> str:
+        year, mon = int(month_str[:4]), int(month_str[5:7])
+        mon += offset
+        if mon == 0:
+            year, mon = year - 1, 12
+        elif mon == 13:
+            year, mon = year + 1, 1
+        return f"{year:04d}-{mon:02d}"
+
+    anchor_search_start = adjacent_month(first_meeting_month, -1)
+    relevant_months = [m for m in months_sorted if m >= anchor_search_start]
+
+    starts: dict[str, float] = {}
+    ends: dict[str, float] = {}
+
+    # A full month without an FOMC meeting prices a single flat rate. It pins
+    # the adjacent meeting month(s), which is CME FedWatch's anchor rule.
+    for month_str in relevant_months:
+        if month_str in meetings_by_month:
             continue
         avg = chain[month_str]
-        year, mon = int(month_str[0:4]), int(month_str[5:7])
-        n_days = calendar.monthrange(year, mon)[1]
+        prev_month = adjacent_month(month_str, -1)
+        next_month = adjacent_month(month_str, 1)
+        if prev_month in meetings_by_month:
+            ends.setdefault(prev_month, avg)
+        if next_month in meetings_by_month:
+            starts.setdefault(next_month, avg)
 
-        ms_in_month = meetings_by_month.get(month_str, [])
+    # Propagate anchor information through consecutive meeting months. Work
+    # backward first, matching CME's precedence for no-meeting anchors.
+    changed = True
+    while changed:
+        changed = False
+        for month_str in reversed(relevant_months):
+            if month_str not in meetings_by_month or month_str in starts:
+                continue
+            if month_str not in ends:
+                continue
+            meeting = meetings_by_month[month_str][-1]
+            n_days = calendar.monthrange(meeting.year, meeting.month)[1]
+            pre_days, post_days = meeting.day, n_days - meeting.day
+            if month_str not in chain or pre_days <= 0:
+                continue
+            starts[month_str] = (
+                chain[month_str] * n_days - post_days * ends[month_str]
+            ) / pre_days
+            prev_month = adjacent_month(month_str, -1)
+            if prev_month in meetings_by_month:
+                ends.setdefault(prev_month, starts[month_str])
+            changed = True
 
-        if not ms_in_month:
-            # Whole month is at one constant rate. The chain's implied avg
-            # IS that rate. Update running rate from market.
-            rate_running = avg
+        for month_str in relevant_months:
+            if (
+                month_str not in meetings_by_month
+                or month_str in ends
+                or month_str not in starts
+                or month_str not in chain
+            ):
+                continue
+            meeting = meetings_by_month[month_str][-1]
+            n_days = calendar.monthrange(meeting.year, meeting.month)[1]
+            pre_days, post_days = meeting.day, n_days - meeting.day
+            if post_days <= 0:
+                continue
+            ends[month_str] = (
+                chain[month_str] * n_days - pre_days * starts[month_str]
+            ) / post_days
+            next_month = adjacent_month(month_str, 1)
+            if next_month in meetings_by_month:
+                starts.setdefault(next_month, ends[month_str])
+            changed = True
+
+    # Fall back to observed EFFR only for a leading meeting that the available
+    # chain could not connect to a no-meeting anchor.
+    rate_running = current_rate
+    for month_str in relevant_months:
+        if month_str < first_meeting_month:
             continue
-
-        # If multiple meetings fall in one month (rare, e.g. unscheduled),
-        # treat them as a single composite move at the latest meeting day.
-        meeting = ms_in_month[-1]
-        d = meeting.day
-
-        if d <= 0 or d > n_days:
+        if month_str not in meetings_by_month:
+            rate_running = chain[month_str]
             continue
+        meeting = meetings_by_month[month_str][-1]
+        n_days = calendar.monthrange(meeting.year, meeting.month)[1]
+        pre_days, post_days = meeting.day, n_days - meeting.day
+        if month_str not in starts:
+            starts[month_str] = rate_running
+        if month_str not in ends and month_str in chain and post_days > 0:
+            ends[month_str] = (
+                chain[month_str] * n_days - pre_days * starts[month_str]
+            ) / post_days
+        if month_str in ends:
+            rate_running = ends[month_str]
 
-        # The decision is announced during day D; the new effective rate
-        # applies from the following calendar day.
-        post_days = n_days - d
-        if post_days == 0:
+    out: list[MeetingRate] = []
+    for meeting in sorted(meetings):
+        month_str = f"{meeting.year:04d}-{meeting.month:02d}"
+        if month_str not in starts or month_str not in ends:
             continue
-        rate_after = (avg * n_days - rate_running * d) / post_days
-
-        delta_bp = (rate_after - rate_running) * 100.0
+        rate_before, rate_after = starts[month_str], ends[month_str]
         out.append(MeetingRate(
             meeting_date=meeting,
-            rate_before=rate_running,
+            rate_before=rate_before,
             rate_after=rate_after,
-            delta_bp=delta_bp,
+            delta_bp=(rate_after - rate_before) * 100.0,
         ))
-        rate_running = rate_after
-
     return out
 
 

@@ -376,7 +376,9 @@ def futures_cmd(db_path: Path, refresh: bool) -> None:
 
     click.echo()
     click.echo("Upcoming meetings:")
-    rates = futures_analysis.implied_rates_at_meetings(chain, upcoming, cur)
+    rates = futures_analysis.implied_rates_at_meetings(
+        chain, upcoming, cur, known_meetings=all_meetings
+    )
     for mr in rates[:6]:
         p = futures_analysis.move_probabilities(mr)
         nonzero = {k: v for k, v in p.buckets.items() if v > 0.005}
@@ -816,6 +818,7 @@ def _build_futures_context(db: Database) -> FuturesContext | None:
         chain_settle_date=settle_date,
         upcoming_meetings=upcoming,
         current_rate=cur,
+        all_meetings=all_meetings,
     )
 
 
