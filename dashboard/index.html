@@ -1350,8 +1350,7 @@ table.rxn td.bucket-cell { text-align: center; }
     <a href="#fomc">FOMC pulse</a>
     <a href="#reactions">Reactions</a>
     <a href="#market-path">Market path</a>
-    <a href="#committee">Committee</a>
-    <a href="#speakers">Speakers</a>
+    <a href="#committee">Hawks vs. Doves</a>
     <a href="#recent">Recent</a>
     <a href="#method">Method</a>
   </nav>
@@ -1390,8 +1389,8 @@ table.rxn td.bucket-cell { text-align: center; }
       </div>
       <div class="hero__metaitem">
         <span class="eyebrow">Last regenerated</span>
-        <time id="regen-time" datetime="2026-10-19T22:35:29+00:00" class="v hero__metaitem--small">22:35 UTC</time>
-        <div class="vs">Oct 19, 2026</div>
+        <time id="regen-time" datetime="2026-10-20T01:34:43+00:00" class="v hero__metaitem--small">01:34 UTC</time>
+        <div class="vs">Oct 20, 2026</div>
       </div>
     </div>
   </div>
@@ -1424,14 +1423,14 @@ table.rxn td.bucket-cell { text-align: center; }
               <div>
                 <span class="eyebrow">Press conference</span>
                 <div class="val t-hawk">+1.50</div>
-                <div class="vsub">09·16 · Powell Q&amp;A</div>
+                <div class="vsub">09·16 · Chair Q&amp;A</div>
                 <div class="reading__delta delta-up arrow-up">+0.70 vs prior</div>
               </div>
               <div class="reading__driftrow">
                 <span class="eyebrow">Drift · presser − statement</span>
                 <div class="reading__driftval">
                   <span class="val t-dove">−0.30</span>
-                  <span class="reading__driftnote">Powell's Q&amp;A pulled dovish against the prepared text.</span>
+                  <span class="reading__driftnote">The chair's Q&amp;A pulled dovish against the prepared text.</span>
                 </div>
               </div></div>
   </div>
@@ -1492,7 +1491,7 @@ table.rxn td.bucket-cell { text-align: center; }
     </div>
     <p class="section__lede">
       Each meeting collapses to one combined score: the prepared statement
-      averaged with Powell's same-day press conference. Drift is what the
+      averaged with the chair's same-day press conference. Drift is what the
       Q&amp;A added on top of the text. Δ vs prior compares this meeting's
       combined score to the previous meeting's.
     </p>
@@ -1719,7 +1718,7 @@ table.rxn td.bucket-cell { text-align: center; }
   <div class="section__head">
     <div>
       <div class="section__num">§ 02 — Committee divergence</div>
-      <h2 class="section__title">Where each<br/>voice <em>stands</em>.</h2>
+      <h2 class="section__title">Hawks vs. <em>Doves</em></h2>
     </div>
     <p class="section__lede">
       Each speaker's trailing 90-day mean places them in a camp. Widening
@@ -1818,408 +1817,11 @@ table.rxn td.bucket-cell { text-align: center; }
 </section>
 
 
-<section class="section" id="speakers">
-  <div class="section__head">
-    <div>
-      <div class="section__num">§ 03 — Speakers</div>
-      <h2 class="section__title">Nineteen <em>voices</em>,<br/>one rubric.</h2>
-    </div>
-    <p class="section__lede">
-      Seven Federal Reserve Board governors and twelve regional bank
-      presidents. Each card shows the speaker's 90-day mean and a sparkline
-      of their last thirty speech scores (oldest → newest, on the
-      −2…+2 scale).
-    </p>
-  </div>
-  <div class="chips-row"><button class="chip chip--active" data-region="all" type="button">All · 19</button><button class="chip" data-region="board" type="button">Board · 7</button><button class="chip" data-region="east-coast" type="button">East coast · 4</button><button class="chip" data-region="midwest" type="button">Midwest · 4</button><button class="chip" data-region="west" type="button">West · 2</button><button class="chip" data-region="south" type="button">South · 2</button></div>
-  <div class="speakers-grid">
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Jerome H. Powell</div>
-          <div class="sp__role">Chair · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-neutral">+0.00</div>
-          <div class="vsub">last · 12·01</div>
-        </div>
-        <svg class="spark sp__spark " viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 24,15 49,15 73,18 98,18 122,18 147,18 171,18 196,24 220,18"/>
-          <circle class="spark__dot" cx="220" cy="18" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Philip N. Jefferson</div>
-          <div class="sp__role">Vice Chair · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.10</div>
-          <div class="vsub">90d · n=1</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,15 13,18 26,15 39,18 52,18 65,18 78,25 91,22 104,22 116,22 129,18 142,22 155,18 168,18 181,15 194,15 207,13 220,8"/>
-          <circle class="spark__dot" cx="220" cy="8" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Michelle W. Bowman</div>
-          <div class="sp__role">Vice Chair · Supervision</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-dove">−0.50</div>
-          <div class="vsub">last · 05·29</div>
-        </div>
-        <svg class="spark sp__spark spark--dove" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 37,18 73,18 110,18 147,29 183,27 220,22"/>
-          <circle class="spark__dot" cx="220" cy="22" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Michael S. Barr</div>
-          <div class="sp__role">Governor · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.40</div>
-          <div class="vsub">90d · n=3</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 15,18 29,15 44,18 59,18 73,18 88,18 103,18 117,18 132,18 147,14 161,14 176,14 191,8 205,5 220,3"/>
-          <circle class="spark__dot" cx="220" cy="3" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Lisa D. Cook</div>
-          <div class="sp__role">Governor · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.23</div>
-          <div class="vsub">90d · n=3</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,25 13,15 26,18 39,18 52,18 65,15 78,18 91,18 104,18 116,22 129,18 142,11 155,18 168,14 181,6 194,5 207,6 220,9"/>
-          <circle class="spark__dot" cx="220" cy="9" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Stephen I. Miran</div>
-          <div class="sp__role">Governor · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+0.50</div>
-          <div class="vsub">last · 03·26</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,34 44,22 88,18 132,32 176,29 220,14"/>
-          <circle class="spark__dot" cx="220" cy="14" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="board">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Christopher J. Waller</div>
-          <div class="sp__role">Governor · Board</div>
-        </div>
-        <div class="sp__region">FRB</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.25</div>
-          <div class="vsub">90d · n=2</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 14,34 28,32 41,18 55,34 69,18 82,18 96,27 110,18 124,32 138,25 151,14 165,11 179,14 192,9 206,12 220,2"/>
-          <circle class="spark__dot" cx="220" cy="2" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="south">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Raphael W. Bostic</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">ATL</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+0.50</div>
-          <div class="vsub">last · 02·05</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,22 20,15 40,18 60,22 80,18 100,11 120,18 140,18 160,27 180,18 200,7 220,14"/>
-          <circle class="spark__dot" cx="220" cy="14" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="east-coast">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Thomas I. Barkin</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">RIC</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+0.95</div>
-          <div class="vsub">90d · n=2</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,9 8,14 15,14 23,14 30,14 38,18 46,15 53,11 61,11 68,11 76,15 83,15 91,18 99,18 106,15 114,11 121,15 129,18 137,18 144,18 152,16 159,15 167,18 174,18 182,18 190,15 197,18 205,18 212,16 220,3"/>
-          <circle class="spark__dot" cx="220" cy="3" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="east-coast">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Susan M. Collins</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">BOS</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.50</div>
-          <div class="vsub">90d · n=2</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,14 8,15 15,18 23,18 30,22 38,22 46,18 53,14 61,14 68,15 76,18 83,22 91,25 99,18 106,22 114,14 121,15 129,18 137,18 144,18 152,15 159,21 167,24 174,14 182,18 190,18 197,11 205,9 212,7 220,2"/>
-          <circle class="spark__dot" cx="220" cy="2" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="east-coast">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">John C. Williams</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">NY</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.30</div>
-          <div class="vsub">90d · n=1</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 8,18 15,22 23,18 30,18 38,16 46,18 53,15 61,18 68,15 76,18 83,18 91,18 99,15 106,15 114,18 121,21 129,18 137,18 144,18 152,27 159,22 167,22 174,22 182,15 190,18 197,18 205,18 212,15 220,6"/>
-          <circle class="spark__dot" cx="220" cy="6" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="west">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Mary C. Daly</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">SF</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-neutral">+0.00</div>
-          <div class="vsub">last · 02·17</div>
-        </div>
-        <svg class="spark sp__spark " viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,22 28,18 55,18 82,18 110,18 138,22 165,25 192,18 220,18"/>
-          <circle class="spark__dot" cx="220" cy="18" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="midwest">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Austan D. Goolsbee</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">CHI</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+0.50</div>
-          <div class="vsub">last · 05·08</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,5 220,14"/>
-          <circle class="spark__dot" cx="220" cy="14" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="midwest">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Beth M. Hammack</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">CLE</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.60</div>
-          <div class="vsub">90d · n=1</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,15 24,14 49,18 73,18 98,18 122,11 147,18 171,14 196,4 220,4"/>
-          <circle class="spark__dot" cx="220" cy="4" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="south">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Alberto G. Musalem</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">STL</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.00</div>
-          <div class="vsub">last · 05·28</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,18 28,18 55,14 82,15 110,14 138,7 165,14 192,11 220,9"/>
-          <circle class="spark__dot" cx="220" cy="9" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="east-coast">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Anna Paulson</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">PHI</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.70</div>
-          <div class="vsub">90d · n=1</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,24 55,24 110,14 165,14 220,3"/>
-          <circle class="spark__dot" cx="220" cy="3" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="midwest">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Neel Kashkari</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">MPLS</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+0.50</div>
-          <div class="vsub">last · 05·01</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,14 73,15 147,22 220,14"/>
-          <circle class="spark__dot" cx="220" cy="14" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="midwest">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Jeffrey R. Schmid</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">KC</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.85</div>
-          <div class="vsub">90d · n=2</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,9 44,4 88,7 132,6 176,0 220,3"/>
-          <circle class="spark__dot" cx="220" cy="3" r="2.5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="sp" data-region="west">
-      <div class="sp__top">
-        <div>
-          <div class="sp__name">Lorie K. Logan</div>
-          <div class="sp__role">President</div>
-        </div>
-        <div class="sp__region">DAL</div>
-      </div>
-      <div class="sp__bot">
-        <div>
-          <div class="v t-hawk">+1.90</div>
-          <div class="vsub">90d · n=1</div>
-        </div>
-        <svg class="spark sp__spark spark--hawk" viewBox="0 0 220 36">
-          <line class="spark__zero" x1="0" y1="18" x2="220" y2="18"/>
-          <polyline class="spark__line" points="0,11 8,14 15,11 23,18 30,7 38,18 46,18 53,18 61,11 68,18 76,18 83,14 91,14 99,18 106,15 114,18 121,18 129,16 137,14 144,18 152,18 159,7 167,18 174,18 182,7 190,7 197,11 205,4 212,2 220,1"/>
-          <circle class="spark__dot" cx="220" cy="1" r="2.5"/>
-        </svg>
-      </div>
-    </div></div>
-</section>
-
 
 <section class="section" id="recent">
   <div class="section__head">
     <div>
-      <div class="section__num">§ 04 — Recent</div>
+      <div class="section__num">§ 03 — Recent</div>
       <h2 class="section__title">The last <em>thirty</em>,<br/>scored.</h2>
     </div>
     <p class="section__lede">
@@ -2597,7 +2199,7 @@ table.rxn td.bucket-cell { text-align: center; }
 <section class="section section--paper2" id="method">
   <div class="section__head">
     <div>
-      <div class="section__num">§ 05 — Method</div>
+      <div class="section__num">§ 04 — Method</div>
       <h2 class="section__title">How a speech<br/>becomes a <em>number</em>.</h2>
     </div>
     <p class="section__lede">
@@ -2632,169 +2234,6 @@ table.rxn td.bucket-cell { text-align: center; }
 </section>
 
 
-<section class="section" id="transparency">
-  <div class="section__head">
-    <div>
-      <div class="section__num">§ 08 — Transparency</div>
-      <h2 class="section__title">What we <em>didn't</em><br/>score, and why.</h2>
-    </div>
-    <p class="section__lede">
-      An open ledger of pipeline gaps and exclusions. Every speaker's mean
-      is computed only from items that DO have a score; this section lists
-      the rest.
-    </p>
-  </div>
-  <div class="trans-grid">
-    
-      <div class="trans__col">
-        <h3 class="trans__h3">Coverage gone quiet</h3>
-        <p class="trans__lede">
-          Speakers whose latest stored speech is more than 60 days old. Could
-          mean a scraper broke or just that the speaker hasn't posted a
-          transcript-archived speech (TV/podcast appearances are intentionally
-          excluded).
-        </p>
-        <div class="trans__list">
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Raphael W. Bostic</div>
-            <div class="trans__sub">Atlanta</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">256 days</div>
-            <div class="trans__sub">last · 2026-02-05</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Stephen I. Miran</div>
-            <div class="trans__sub">Board</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">207 days</div>
-            <div class="trans__sub">last · 2026-03-26</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Mary C. Daly</div>
-            <div class="trans__sub">San Francisco</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">194 days</div>
-            <div class="trans__sub">last · 2026-04-08</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Jerome H. Powell</div>
-            <div class="trans__sub">Board</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">141 days</div>
-            <div class="trans__sub">last · 2026-05-31</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Alberto G. Musalem</div>
-            <div class="trans__sub">St. Louis</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">136 days</div>
-            <div class="trans__sub">last · 2026-06-05</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Austan D. Goolsbee</div>
-            <div class="trans__sub">Chicago</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">116 days</div>
-            <div class="trans__sub">last · 2026-06-25</div>
-          </div>
-        </div>
-        <div class="trans__row">
-          <div>
-            <div class="trans__name">Neel Kashkari</div>
-            <div class="trans__sub">Minneapolis</div>
-          </div>
-          <div class="trans__right">
-            <div class="trans__val">80 days</div>
-            <div class="trans__sub">last · 2026-07-31</div>
-          </div>
-        </div></div>
-      </div>
-    
-      <div class="trans__col">
-        <h3 class="trans__h3">Speeches not scored, last 90 days</h3>
-        <p class="trans__lede">
-          What the pipeline saw but excluded. Each speaker's hawk/dove mean
-          is computed only from items that DO have a score, so it's worth
-          knowing what was deliberately left out.
-        </p>
-        
-        <details class="trans__group">
-          <summary>
-            <span class="trans__reason">Excluded by rubric (non-MP topic)</span>
-            <span class="trans__count">12</span>
-          </summary>
-          <div class="trans__list">
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Susan M. Collins</div>
-                <div class="trans__sub">2026-10-09</div>
-              </div>
-            </div>
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Michelle W. Bowman</div>
-                <div class="trans__sub">2026-10-06</div>
-              </div>
-            </div>
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Lorie K. Logan</div>
-                <div class="trans__sub">2026-10-02</div>
-              </div>
-            </div>
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Christopher J. Waller</div>
-                <div class="trans__sub">2026-10-01</div>
-              </div>
-            </div>
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Michelle W. Bowman</div>
-                <div class="trans__sub">2026-10-01</div>
-              </div>
-            </div><div class="trans__more">+ 7 more</div></div>
-        </details>
-        <details class="trans__group">
-          <summary>
-            <span class="trans__reason">Failed speech-likeness filter</span>
-            <span class="trans__count">2</span>
-          </summary>
-          <div class="trans__list">
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Jeffrey R. Schmid</div>
-                <div class="trans__sub">2026-10-19</div>
-              </div>
-            </div>
-            <div class="trans__row">
-              <div>
-                <div class="trans__name">Neel Kashkari</div>
-                <div class="trans__sub">2026-07-31</div>
-              </div>
-            </div></div>
-        </details>
-      </div>
-  </div>
-</section>
-
 
 <section class="cta">
   <div>
@@ -2822,8 +2261,8 @@ table.rxn td.bucket-cell { text-align: center; }
     <div>
       <h5>Coverage</h5>
       <ul>
-        <li><a href="#speakers">Board governors · 7</a></li>
-        <li><a href="#speakers">Regional presidents · 12</a></li>
+        <li><a href="#committee">Board governors · 7</a></li>
+        <li><a href="#committee">Regional presidents · 12</a></li>
         <li><a href="#fomc">FOMC statements</a></li>
         <li><a href="#fomc">FOMC minutes</a></li>
         <li><a href="#fomc">Press conferences</a></li>
@@ -2842,8 +2281,7 @@ table.rxn td.bucket-cell { text-align: center; }
       <h5>Sections</h5>
       <ul>
         <li><a href="#fomc">FOMC pulse</a></li>
-        <li><a href="#committee">Committee divergence</a></li>
-        <li><a href="#speakers">Speakers</a></li>
+        <li><a href="#committee">Hawks vs. Doves</a></li>
         <li><a href="#recent">Recent</a></li>
         <li><a href="#method">Method</a></li>
       </ul>
@@ -2856,7 +2294,7 @@ table.rxn td.bucket-cell { text-align: center; }
       with, endorsed by, or representative of the Federal Reserve System,
       any Federal Reserve Bank, or any other government body. Scores are
       interpretations produced by a large language model against a fixed
-      rubric (see <a href="#method">§ 05 Method</a>) — they reflect that
+      rubric (see <a href="#method">§ 04 Method</a>) — they reflect that
       rubric's reading of each document, not the speaker's intent or any
       official position. Nothing on this site is investment, financial,
       legal, or other professional advice. Coverage depends on best-effort

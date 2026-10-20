@@ -344,19 +344,12 @@ def render(
 ) -> None:
     """Render the editorial-design single-file dashboard.
 
-    Same signature as before; new visual language. `reactions`, `stale`,
-    `skips` are accepted for compatibility but not currently surfaced —
-    the editorial design omits the explicit transparency panels in favor
-    of a cleaner reader-facing layout.
+    `stale` and `skips` are accepted for caller compatibility but are not
+    surfaced in the reader-facing layout.
     """
     speech_scores = [s for s in scores if s.doc_type == "speech"]
     fomc_scores = [s for s in scores if s.doc_type != "speech"]
 
-    by_speaker_key: dict[str, list[StoredScore]] = defaultdict(list)
-    for s in speech_scores:
-        by_speaker_key[s.speaker_key].append(s)
-    for k in by_speaker_key:
-        by_speaker_key[k].sort(key=lambda x: x.speech_date)
 
     governor_speakers = [sp for sp in speakers if sp.key != FOMC_SPEAKER_KEY]
     speakers_by_key = {sp.key: sp for sp in speakers}
@@ -371,12 +364,10 @@ def render(
     reactions_html = _reactions_section(reactions or [])
     market_path_html = _market_path_section(futures_ctx, meetings)
     committee_html = _committee_section(governor_speakers, scores, speakers_by_key)
-    speakers_html = _speakers_section(governor_speakers, by_speaker_key)
+
     recent_html = _recent_section(speech_scores[:30], speakers_by_key)
     method_html = _method_section()
-    transparency_html = _transparency_section(
-        skips or [], stale or [], speakers_by_key
-    )
+
     cta_html = _cta_section()
     footer_html = _footer_section(now_utc)
 
@@ -390,10 +381,10 @@ def render(
             reactions=reactions_html,
             market_path=market_path_html,
             committee=committee_html,
-            speakers=speakers_html,
+
             recent=recent_html,
             method=method_html,
-            transparency=transparency_html,
+
             cta=cta_html,
             footer=footer_html,
             now_iso=now_utc.isoformat(),
@@ -416,8 +407,7 @@ def _topbar_section() -> str:
     <a href="#fomc">FOMC pulse</a>
     <a href="#reactions">Reactions</a>
     <a href="#market-path">Market path</a>
-    <a href="#committee">Committee</a>
-    <a href="#speakers">Speakers</a>
+    <a href="#committee">Hawks vs. Doves</a>
     <a href="#recent">Recent</a>
     <a href="#method">Method</a>
   </nav>
@@ -476,7 +466,7 @@ def _hero_section(
 
         stmt_sub = (latest.statement.speech_date.strftime("%b %-d, %Y")
                     if latest.statement else "")
-        presser_sub = (f"{_short_date(latest.presser.speech_date)} · Powell Q&amp;A"
+        presser_sub = (f"{_short_date(latest.presser.speech_date)} · Chair Q&amp;A"
                        if latest.presser else "")
         stmt_html = _split_cell("Statement", latest.statement,
                                   prior.statement if prior else None, stmt_sub)
@@ -487,9 +477,9 @@ def _hero_section(
         if latest.drift is not None:
             drift_cls = _polarity_class(latest.drift)
             if abs(latest.drift) >= 0.3:
-                drift_text = ("Powell's Q&amp;A pulled hawkish against the prepared text."
+                drift_text = ("The chair's Q&amp;A pulled hawkish against the prepared text."
                                if latest.drift > 0
-                               else "Powell's Q&amp;A pulled dovish against the prepared text.")
+                               else "The chair's Q&amp;A pulled dovish against the prepared text.")
             else:
                 drift_text = "Q&amp;A roughly tracked the statement."
             drift_html = f"""
@@ -695,7 +685,7 @@ def _fomc_pulse_section(meetings: list[_Meeting]) -> str:
     </div>
     <p class="section__lede">
       Each meeting collapses to one combined score: the prepared statement
-      averaged with Powell's same-day press conference. Drift is what the
+      averaged with the chair's same-day press conference. Drift is what the
       Q&amp;A added on top of the text. Δ vs prior compares this meeting's
       combined score to the previous meeting's.
     </p>
@@ -1140,7 +1130,7 @@ def _committee_section(
   <div class="section__head">
     <div>
       <div class="section__num">§ 02 — Committee divergence</div>
-      <h2 class="section__title">Where each<br/>voice <em>stands</em>.</h2>
+      <h2 class="section__title">Hawks vs. <em>Doves</em></h2>
     </div>
     <p class="section__lede">
       Each speaker's trailing 90-day mean places them in a camp. Widening
@@ -1350,7 +1340,7 @@ def _recent_section(
 <section class="section" id="recent">
   <div class="section__head">
     <div>
-      <div class="section__num">§ 04 — Recent</div>
+      <div class="section__num">§ 03 — Recent</div>
       <h2 class="section__title">The last <em>thirty</em>,<br/>scored.</h2>
     </div>
     <p class="section__lede">
@@ -1373,7 +1363,7 @@ def _method_section() -> str:
 <section class="section section--paper2" id="method">
   <div class="section__head">
     <div>
-      <div class="section__num">§ 05 — Method</div>
+      <div class="section__num">§ 04 — Method</div>
       <h2 class="section__title">How a speech<br/>becomes a <em>number</em>.</h2>
     </div>
     <p class="section__lede">
@@ -1555,8 +1545,8 @@ def _footer_section(now: dt.datetime) -> str:
     <div>
       <h5>Coverage</h5>
       <ul>
-        <li><a href="#speakers">Board governors · 7</a></li>
-        <li><a href="#speakers">Regional presidents · 12</a></li>
+        <li><a href="#committee">Board governors · 7</a></li>
+        <li><a href="#committee">Regional presidents · 12</a></li>
         <li><a href="#fomc">FOMC statements</a></li>
         <li><a href="#fomc">FOMC minutes</a></li>
         <li><a href="#fomc">Press conferences</a></li>
@@ -1575,8 +1565,7 @@ def _footer_section(now: dt.datetime) -> str:
       <h5>Sections</h5>
       <ul>
         <li><a href="#fomc">FOMC pulse</a></li>
-        <li><a href="#committee">Committee divergence</a></li>
-        <li><a href="#speakers">Speakers</a></li>
+        <li><a href="#committee">Hawks vs. Doves</a></li>
         <li><a href="#recent">Recent</a></li>
         <li><a href="#method">Method</a></li>
       </ul>
@@ -1589,7 +1578,7 @@ def _footer_section(now: dt.datetime) -> str:
       with, endorsed by, or representative of the Federal Reserve System,
       any Federal Reserve Bank, or any other government body. Scores are
       interpretations produced by a large language model against a fixed
-      rubric (see <a href="#method">§ 05 Method</a>) — they reflect that
+      rubric (see <a href="#method">§ 04 Method</a>) — they reflect that
       rubric's reading of each document, not the speaker's intent or any
       official position. Nothing on this site is investment, financial,
       legal, or other professional advice. Coverage depends on best-effort
@@ -2954,10 +2943,10 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 {reactions}
 {market_path}
 {committee}
-{speakers}
+
 {recent}
 {method}
-{transparency}
+
 {cta}
 {footer}
 <script>
