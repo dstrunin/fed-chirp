@@ -11,3 +11,5 @@ data/*.log
 build/
 dist/
 .claude/
+# Local publisher state, kernel lock, summaries and optional logs.
+.publish-state/

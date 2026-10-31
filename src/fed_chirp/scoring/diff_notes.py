@@ -14,7 +14,7 @@ from dataclasses import replace
 
 from .hermes_client import HermesClient
 
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-6-astra"
 MAX_OUTPUT_TOKENS = 700
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0

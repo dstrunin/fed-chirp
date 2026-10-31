@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 from .hermes_client import HermesClient
 from .prompt import SYSTEM_PROMPT
 
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-6-astra"
 MAX_OUTPUT_TOKENS = 800
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0
@@ -92,7 +92,7 @@ def _doc_header(doc_type: str, speaker_name: str, speaker_role: str, d: dt.date)
     if doc_type == "fomc_presser":
         return (
             f"Document type: Press Conference Transcript "
-            f"(Chair Powell prepared remarks + reporter Q&A).\n"
+            f"(the presiding Chair's prepared remarks + reporter Q&A).\n"
             f"Date: {iso}\n"
         )
     # speech (default)
@@ -115,7 +115,7 @@ def _scoring_directive(doc_type: str) -> str:
         )
     if doc_type == "fomc_presser":
         return (
-            "Score Powell's policy stance across both prepared remarks and Q&A. "
+            "Score the presiding Chair's policy stance across both prepared remarks and Q&A. "
             "Q&A answers often shift more weight than the prepared statement."
         )
     return "Score the speaker's policy stance."

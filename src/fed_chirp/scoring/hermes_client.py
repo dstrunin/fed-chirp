@@ -20,14 +20,16 @@ class HermesError(RuntimeError):
 def parse_hermes_json(output: str) -> dict:
     """Parse JSON from quiet Hermes output.
 
-    `hermes chat -Q` still emits a leading `session_id: ...` line in one-shot
-    mode. The model response follows it and may occasionally be wrapped in a
-    markdown JSON fence, so strip both before parsing.
+    Quiet CLI versions emit session metadata before or after the response.
+    Remove only boundary metadata/blank lines, then an optional JSON fence;
+    unexpected prose still fails closed instead of guessing at a JSON substring.
     """
-    text = output.strip()
-    lines = text.splitlines()
-    if lines and lines[0].startswith("session_id:"):
-        text = "\n".join(lines[1:]).strip()
+    lines = output.strip().splitlines()
+    while lines and (not lines[0].strip() or lines[0].startswith("session_id:")):
+        lines.pop(0)
+    while lines and (not lines[-1].strip() or lines[-1].startswith("session_id:")):
+        lines.pop()
+    text = "\n".join(lines).strip()
 
     if text.startswith("```"):
         first_newline = text.find("\n")
@@ -50,8 +52,8 @@ def parse_hermes_json(output: str) -> dict:
 class HermesClient:
     hermes_bin: str = "hermes"
     provider: str = "openai-codex"
-    model: str = "gpt-5.5"
-    source: str = "fed-chirp"
+    model: str = "gpt-6-astra"
+    source: str = "tool"
     timeout_seconds: int = 300
 
     @classmethod
@@ -59,8 +61,8 @@ class HermesClient:
         return cls(
             hermes_bin=os.environ.get("FED_CHIRP_HERMES_BIN", "hermes"),
             provider=os.environ.get("FED_CHIRP_HERMES_PROVIDER", "openai-codex"),
-            model=os.environ.get("FED_CHIRP_HERMES_MODEL", "gpt-5.5"),
-            source=os.environ.get("FED_CHIRP_HERMES_SOURCE", "fed-chirp"),
+            model=os.environ.get("FED_CHIRP_HERMES_MODEL", "gpt-6-astra"),
+            source=os.environ.get("FED_CHIRP_HERMES_SOURCE", "tool"),
             timeout_seconds=int(os.environ.get("FED_CHIRP_HERMES_TIMEOUT", "300")),
         )
 

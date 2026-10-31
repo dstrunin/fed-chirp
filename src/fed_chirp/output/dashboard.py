@@ -20,7 +20,7 @@ from pathlib import Path
 from ..analysis.deltas import WINDOW_DAYS
 from ..analysis import divergence as divergence_analysis
 from ..analysis import futures as futures_analysis
-from ..analysis.health import StaleSpeaker
+from ..analysis.health import FomcHealth, StaleSpeaker
 from ..fetchers.federalreserve import Speaker
 from ..fetchers.fomc import (
     DOC_MINUTES,
@@ -85,9 +85,12 @@ class _Meeting:
     statement: StoredScore | None = None
     presser: StoredScore | None = None
     minutes: StoredScore | None = None
+    incomplete: bool = False
 
     @property
     def combined(self) -> float | None:
+        if self.incomplete:
+            return None
         parts = [s.score for s in (self.statement, self.presser) if s is not None]
         return sum(parts) / len(parts) if parts else None
 
@@ -341,6 +344,7 @@ def render(
     reactions: list[MarketReaction] | None = None,
     stale: list[StaleSpeaker] | None = None,
     skips: list[ProcessingSkip] | None = None,
+    fomc_health: FomcHealth | None = None,
 ) -> None:
     """Render the editorial-design single-file dashboard.
 
@@ -354,11 +358,31 @@ def render(
     governor_speakers = [sp for sp in speakers if sp.key != FOMC_SPEAKER_KEY]
     speakers_by_key = {sp.key: sp for sp in speakers}
     meetings = _group_by_meeting(fomc_scores)
+    if fomc_health is not None:
+        by_date = {m.meeting_date: m for m in meetings}
+        dates = set(fomc_health.incomplete_dates)
+        if fomc_health.latest_expected is not None:
+            dates.add(fomc_health.latest_expected)
+        for date in dates:
+            meeting = by_date.setdefault(date, _Meeting(date))
+            meeting.incomplete = date in fomc_health.incomplete_dates
+        meetings = sorted(by_date.values(), key=lambda m: m.meeting_date, reverse=True)
 
     now_utc = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
 
     topbar_html = _topbar_section()
-    hero_html = _hero_section(meetings, len(scores), len(governor_speakers), now_utc)
+    hero_html = _hero_section(meetings, len(scores), len(governor_speakers), now_utc,
+                              fomc_health=fomc_health)
+    if fomc_health is not None and not fomc_health.ok:
+        issues_html = "".join(f"<li>{html.escape(issue)}</li>" for issue in fomc_health.issues)
+        hero_html = (
+            '<aside role="alert" class="section" id="fomc-health" '
+            'style="border:2px solid #a64b32;padding:24px;background:#fff1e5">'
+            '<strong>FOMC completeness warning — current stance unavailable</strong>'
+            '<p>Latest expected documents are missing or unscored, or calendar/discovery '
+            'could not be verified. Prior meeting scores are historical, not current.</p>'
+            f'<ul>{issues_html}</ul></aside>' + hero_html
+        )
     whats_new_html = _whats_new_section(scores, speakers_by_key)
     pulse_html = _fomc_pulse_section(meetings)
     market_path_html = _market_path_section(futures_ctx, meetings)
@@ -425,6 +449,7 @@ def _hero_section(
     total_docs: int,
     n_speakers: int,
     now: dt.datetime,
+    fomc_health: FomcHealth | None = None,
 ) -> str:
     latest = meetings[0] if meetings else None
     prior = next((m for m in meetings[1:] if m.combined is not None), None)
@@ -520,6 +545,17 @@ def _hero_section(
     <div class="reading__label">No FOMC meeting scored yet.</div>
   </div>
 """
+
+    if fomc_health is not None and not fomc_health.ok:
+        expected = (fomc_health.latest_expected.isoformat()
+                    if fomc_health.latest_expected else "not verifiable")
+        reading_card = f"""
+  <div class="reading">
+    <div class="reading__top"><span class="eyebrow">Current FOMC stance</span></div>
+    <div class="reading__big t-neutral">—</div>
+    <div class="reading__label">Unavailable — FOMC completeness check failed.</div>
+    <p>Latest expected meeting: {expected}. See the warning above.</p>
+  </div>"""
 
     last_regen_time = now.strftime("%H:%M UTC")
     last_regen_date = now.strftime("%b %-d, %Y")

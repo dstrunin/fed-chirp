@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import sqlite3
 from pathlib import Path
 
 import click
@@ -46,6 +47,11 @@ DEFAULT_DASHBOARD = PROJECT_ROOT / "dashboard" / "index.html"
 log = get_logger()
 
 
+class FomcIncomplete(click.ClickException):
+    """A regenerated warning dashboard may be published, but scan failed."""
+    exit_code = 2
+
+
 @click.group()
 def cli() -> None:
     """Monitor Federal Reserve Board governor speech tone + FOMC docs."""
@@ -54,6 +60,7 @@ def cli() -> None:
 
 @cli.command()
 @click.option("--dry-run", is_flag=True, help="Don't send email; print to stdout.")
+@click.option("--fomc-only", is_flag=True, help="Skip speech discovery/scoring; process FOMC only.")
 @click.option("--summary-file", "summary_file",
               type=click.Path(path_type=Path), default=None,
               help="Write a markdown summary of this scan to PATH. "
@@ -66,27 +73,40 @@ def scan(
     summary_file: Path | None,
     config: Path,
     db_path: Path,
+    fomc_only: bool = False,
 ) -> None:
     """Discover, fetch, and score new speeches + FOMC docs; alert on shifts."""
     run_start = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     speakers = load_speakers(config)
     db = Database(db_path)
 
-    with maybe_playwright(speakers) as pw:
-        speech_refs = discover(speakers, pw=pw)
-        new_speech = [r for r in speech_refs if not db.has_score(r.url)]
-        log.info("speeches: %d in feeds, %d new", len(speech_refs), len(new_speech))
-
+    # Keep FOMC independent of optional speech feeds/browser/model failures.
+    discovery_error = None
+    try:
         fomc_refs = fomc_fetch.discover()
-        new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
-        log.info("fomc docs: %d in feeds, %d new", len(fomc_refs), len(new_fomc))
+    except Exception as exc:
+        log.exception("FOMC discovery failed: %s", exc)
+        fomc_refs = []
+        discovery_error = str(exc)
+    new_fomc = [r for r in fomc_refs if not db.has_score(r.url)]
+    log.info("fomc docs: %d in feeds, %d new", len(fomc_refs), len(new_fomc))
+    _refresh_futures_and_calendar(db)
+    fomc_alerts = _process_fomc(new_fomc, db)
 
-        _refresh_futures_and_calendar(db)
+    speech_alerts = []
+    if not fomc_only:
+        try:
+            with maybe_playwright(speakers) as pw:
+                speech_refs = discover(speakers, pw=pw)
+                new_speech = [r for r in speech_refs if not db.has_score(r.url)]
+                log.info("speeches: %d in feeds, %d new", len(speech_refs), len(new_speech))
+                speech_alerts = _process_speeches(new_speech, speakers, db, pw=pw)
+        except Exception as exc:
+            log.exception("speech pipeline failed; continuing FOMC reporting: %s", exc)
 
-        speech_alerts = _process_speeches(new_speech, speakers, db, pw=pw)
-        fomc_alerts = _process_fomc(new_fomc, db)
-        _refresh_market_reactions(db)
-        _regenerate_dashboard(speakers, db)
+    fomc_health = health.check_fomc(db, fomc_refs, discovery_error=discovery_error)
+    _refresh_market_reactions(db)
+    _regenerate_dashboard(speakers, db, fomc_health=fomc_health)
 
     all_alerts: list = list(speech_alerts) + list(fomc_alerts)
     if all_alerts:
@@ -113,10 +133,18 @@ def scan(
             stale=stale,
             speakers=speakers,
         )
+        summary_md += "\n### FOMC completeness\n\n"
+        summary_md += ("Healthy.\n" if fomc_health.ok else
+                       "\n".join(f"- {issue}" for issue in fomc_health.issues) + "\n")
         summary_file.parent.mkdir(parents=True, exist_ok=True)
         summary_file.write_text(summary_md, encoding="utf-8")
         log.info("scan summary written to %s (%d new docs)",
                  summary_file, len(new_scores))
+
+    if not fomc_health.ok:
+        # Exit 2 explicitly means a fresh warning dashboard is safe to publish.
+        # Unexpected exceptions (including render failures) retain exit 1.
+        raise FomcIncomplete("FOMC completeness failed:\n" + "\n".join(fomc_health.issues))
 
 
 @cli.command()
@@ -207,7 +235,7 @@ def score_one(url: str, config: Path, db_path: Path) -> None:
         ))
         speaker_name = (
             "FOMC Committee" if doc.speaker_key == fomc_fetch.FOMC_SPEAKER_KEY
-            else "Jerome H. Powell"
+            else "FOMC Chair"
         )
         speaker_role = (
             "Committee" if doc.speaker_key == fomc_fetch.FOMC_SPEAKER_KEY else "Chair"
@@ -681,7 +709,7 @@ def _process_fomc(
 
         speaker_name = (
             "FOMC Committee" if doc.speaker_key == fomc_fetch.FOMC_SPEAKER_KEY
-            else "Jerome H. Powell"
+            else "FOMC Chair"
         )
         speaker_role = (
             "Committee" if doc.speaker_key == fomc_fetch.FOMC_SPEAKER_KEY else "Chair"
@@ -771,7 +799,12 @@ def _process_fomc(
     return alerts
 
 
-def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
+def _regenerate_dashboard(speakers: list[Speaker], db: Database, *,
+                          fomc_health: health.FomcHealth | None = None) -> None:
+    if fomc_health is None:
+        fomc_health = health.check_fomc(db)
+    for issue in fomc_health.issues:
+        log.warning("FOMC completeness: %s", issue)
     scores = db.all_scores()
     ctx = _build_futures_context(db)
     reactions = db.get_market_reactions()
@@ -790,6 +823,7 @@ def _regenerate_dashboard(speakers: list[Speaker], db: Database) -> None:
     dash.render(
         speakers, scores, DEFAULT_DASHBOARD,
         futures_ctx=ctx, reactions=reactions, stale=stale, skips=skips,
+        fomc_health=fomc_health,
     )
     log.info(
         "dashboard: regenerated at %s (%d documents, %d reactions, %d skips)",
@@ -1038,6 +1072,23 @@ def _fomc_ref_from_url(url: str) -> fomc_fetch.FomcRef:
         url=url, doc_type=doc_type, speaker_key=fomc_fetch.FOMC_SPEAKER_KEY,
         pub_date=parsed["date"], title=title,
     )
+
+
+@cli.command("fomc-health")
+@click.option("--db", "db_path", type=click.Path(path_type=Path), default=DEFAULT_DB)
+def fomc_health_cmd(db_path: Path) -> None:
+    """Check cached FOMC calendar + stored scores; exit 1 if incomplete.
+
+    No network or model calls. Run scan to refresh discovery/calendar first.
+    Ordinary speech exclusions and speaker coverage do not affect this gate.
+    """
+    try:
+        report = health.check_fomc(db_path)
+    except sqlite3.Error as exc:
+        raise click.ClickException(f"Cannot read FOMC health database: {exc}") from exc
+    if not report.ok:
+        raise click.ClickException("FOMC completeness failed:\n" + "\n".join(report.issues))
+    click.echo(f"FOMC healthy (latest expected: {report.latest_expected or 'none due yet'}).")
 
 
 @cli.command("health")

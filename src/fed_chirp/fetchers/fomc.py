@@ -126,7 +126,7 @@ def discover(since: dt.date | None = None) -> list[FomcRef]:
 def fetch_doc(ref: FomcRef) -> FomcDoc:
     """Download and parse one FOMC document."""
     if ref.doc_type == DOC_PRESSER:
-        body = fetch_pdf_text(ref.url, drop_first_page=True)
+        body = fetch_pdf_text(ref.url, drop_first_page=False)
         if not body.strip():
             raise ValueError(f"Empty press-conf transcript: {ref.url}")
         return FomcDoc(

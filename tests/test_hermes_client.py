@@ -52,7 +52,7 @@ def test_hermes_client_builds_quiet_codex_command(monkeypatch):
         "gpt-5.5",
         "--ignore-rules",
         "--source",
-        "fed-chirp",
+        "tool",
         "-q",
         "Return JSON",
     ]]
@@ -81,6 +81,23 @@ def test_hermes_client_applies_env_defaults(monkeypatch):
     assert client.provider == "openai-codex"
     assert client.model == "gpt-5.5"
     assert client.timeout_seconds == 123
+
+
+@pytest.mark.parametrize("output", [
+    '{"ok": true}\n\nsession_id: local-abc\n',
+    '```json\n{"ok": true}\n```\n\nsession_id: local-abc\n',
+    'session_id: abc\n{"ok": true}\n\nsession_id: abc',
+])
+def test_parse_hermes_json_accepts_current_trailing_session_metadata(output):
+    assert parse_hermes_json(output) == {"ok": True}
+
+
+def test_client_defaults_use_supported_source_and_model(monkeypatch):
+    for key in ("MODEL", "SOURCE"):
+        monkeypatch.delenv(f"FED_CHIRP_HERMES_{key}", raising=False)
+    client = HermesClient.from_env()
+    assert client.source == "tool"
+    assert client.model == "gpt-6-astra"
 
 
 def test_parse_hermes_json_reports_malformed_output():
