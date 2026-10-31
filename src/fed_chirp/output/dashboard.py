@@ -344,7 +344,7 @@ def render(
 ) -> None:
     """Render the editorial-design single-file dashboard.
 
-    `stale` and `skips` are accepted for caller compatibility but are not
+    `reactions`, `stale`, and `skips` are accepted for caller compatibility but are not
     surfaced in the reader-facing layout.
     """
     speech_scores = [s for s in scores if s.doc_type == "speech"]
@@ -361,7 +361,6 @@ def render(
     hero_html = _hero_section(meetings, len(scores), len(governor_speakers), now_utc)
     whats_new_html = _whats_new_section(scores, speakers_by_key)
     pulse_html = _fomc_pulse_section(meetings)
-    reactions_html = _reactions_section(reactions or [])
     market_path_html = _market_path_section(futures_ctx, meetings)
     committee_html = _committee_section(governor_speakers, scores, speakers_by_key)
 
@@ -378,7 +377,6 @@ def render(
             hero=hero_html,
             whats_new=whats_new_html,
             pulse=pulse_html,
-            reactions=reactions_html,
             market_path=market_path_html,
             committee=committee_html,
 
@@ -405,7 +403,6 @@ def _topbar_section() -> str:
   </a>
   <nav class="topbar__nav">
     <a href="#fomc">FOMC pulse</a>
-    <a href="#reactions">Reactions</a>
     <a href="#market-path">Market path</a>
     <a href="#committee">Hawks vs. Doves</a>
     <a href="#recent">Recent</a>
@@ -2940,7 +2937,6 @@ table.rxn td.bucket-cell {{ text-align: center; }}
 {hero}
 {whats_new}
 {pulse}
-{reactions}
 {market_path}
 {committee}
 
