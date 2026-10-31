@@ -75,8 +75,20 @@ _CF_CHALLENGE_RE = re.compile(
 )
 
 
+# Exact public Insights tag (including trailing newline) captured from this site.
+# Both challenge + beacon and beacon + challenge orders were observed 2026-10-31.
+# Beacon-only was not observed and is deliberately not accepted.
+_CF_BEACON = (
+    b'<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/'
+    b'vce701823e78c4301a35b7e07294d87301792088814092" '
+    b'integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" '
+    b'data-cf-beacon=\'{"version":"2024.11.0","token":"387343d97fba4e7596c99d5f8c8c7c25","r":1,"spa":2}\' '
+    b'crossorigin="anonymous"></script>\n'
+)
+
+
 def matches_live(expected, actual):
-    """Exact application bytes; allow only CF's single challenge script tail.
+    """Exact application bytes; allow CF's challenge plus optional pinned beacon.
 
     Do not strip arbitrary scripts or normalize whitespace/application HTML.
     All bytes before the final </body> and the closing suffix remain bound.
@@ -87,6 +99,12 @@ def matches_live(expected, actual):
     if not separator or not actual.startswith(prefix) or not actual.endswith(separator + suffix):
         return False
     injected = actual[len(prefix):len(actual) - len(separator + suffix)]
+    # Remove at most one exact tag in either observed position, then require the
+    # complete validated challenge. Extra/duplicate scripts still fail fullmatch.
+    if injected.endswith(_CF_BEACON):
+        injected = injected[:-len(_CF_BEACON)]
+    elif injected.startswith(_CF_BEACON):
+        injected = injected[len(_CF_BEACON):]
     match = _CF_CHALLENGE_RE.fullmatch(injected)
     if not match:
         return False

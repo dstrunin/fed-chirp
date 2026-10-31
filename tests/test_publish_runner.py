@@ -289,6 +289,96 @@ def test_live_accepts_captured_template_variable_fields(ray, stamp):
     assert not matches_live(html, html.replace(b"exact application", b"exact  application"))
 
 
+CF_BEACON = (
+    b'<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/'
+    b'vce701823e78c4301a35b7e07294d87301792088814092" '
+    b'integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" '
+    b'data-cf-beacon=\'{"version":"2024.11.0","token":"387343d97fba4e7596c99d5f8c8c7c25","r":1,"spa":2}\' '
+    b'crossorigin="anonymous"></script>\n'
+)
+CAPTURED_CF_TAILS = json.loads(
+    (Path(__file__).parent / "fixtures/cloudflare_tails_2026-10-31.json").read_text()
+)
+
+
+@pytest.mark.parametrize("capture", CAPTURED_CF_TAILS, ids=lambda capture: capture["variant"])
+def test_live_accepts_complete_captured_challenge_and_beacon_tail(capture):
+    html = b"<html><body>exact application<script>own()</script>\n</body></html>\n"
+    tail = capture["tail"].encode()
+    assert tail.count(CF_BEACON) == 1
+    assert matches_live(html, html.replace(b"</body>", tail + b"</body>"))
+
+
+@pytest.mark.parametrize("order", ["challenge-first", "beacon-first"])
+@pytest.mark.parametrize("old,new", [
+    (b"static.cloudflareinsights.com", b"evil.example"),
+    (b"https://", b"http://"),
+    (b"vce701823e78c4301a35b7e07294d87301792088814092", b"other-version"),
+    (b"beacon.min.js/", b"other.js/"),
+    (b"sha512-UKNk", b"sha512-XKNk"),
+    (b"387343d97fba4e7596c99d5f8c8c7c25", b"00000000000000000000000000000000"),
+    (b'"r":1', b'"r":2'),
+    (b'"version":"2024.11.0"', b'"version":"2024.12.0"'),
+    (b'crossorigin="anonymous"', b'crossorigin="use-credentials"'),
+    (b'type="module"', b'type="text/javascript"'),
+    (b"></script>", b">evil()</script>"),
+    (b"</script>\n", b"</script>"),
+    (b"</script>\n", b"</script>\n\n"),
+])
+def test_live_rejects_mutated_beacon(order, old, new):
+    html = b"<html><body>exact application\n</body></html>"
+    beacon = CF_BEACON.replace(old, new)
+    assert beacon != CF_BEACON
+    tail = CF_TAIL + beacon if order == "challenge-first" else beacon + CF_TAIL
+    assert not matches_live(html, html.replace(b"</body>", tail + b"</body>"))
+
+
+@pytest.mark.parametrize("tail", [
+    CF_BEACON,  # Beacon-only was not observed: do not authorize it speculatively.
+    CF_TAIL + CF_BEACON + CF_BEACON,
+    CF_BEACON + CF_TAIL + CF_BEACON,
+    CF_BEACON + CF_BEACON + CF_TAIL,
+    CF_TAIL + CF_TAIL + CF_BEACON,
+    CF_BEACON + CF_TAIL + CF_TAIL,
+    CF_TAIL + CF_BEACON + b"<script>evil()</script>",
+    CF_BEACON + CF_TAIL + b"<script>evil()</script>",
+    CF_TAIL.replace(b"a.height=1", b"a.height=1;evil()") + CF_BEACON,
+    CF_BEACON + CF_TAIL.replace(b"a.height=1", b"a.height=1;evil()"),
+    CF_TAIL.replace(b"?ray=a53445133a65b7db", b"?ray=1111111111111111") + CF_BEACON,
+    CF_TAIL.replace(b"MTc5MzQ2NjU5MQ==", b"QUFBQUFBQUFBQQ==") + CF_BEACON,
+    b"\n" + CF_TAIL + CF_BEACON,
+    CF_TAIL + b"\n" + CF_BEACON,
+    CF_BEACON + CF_TAIL + b"\n",
+])
+def test_live_rejects_unobserved_or_extra_cloudflare_tails(tail):
+    html = b"<html><body>exact application\n</body></html>"
+    assert not matches_live(html, html.replace(b"</body>", tail + b"</body>"))
+
+
+@pytest.mark.parametrize("capture", CAPTURED_CF_TAILS, ids=lambda capture: capture["variant"])
+@pytest.mark.parametrize("old,new", [
+    (b"exact application", b"exact  application"),
+    (b"own()", b"evil()"),
+    (b"</html>\n", b"</html>"),
+])
+def test_live_beacon_does_not_hide_application_or_closing_suffix_mutation(capture, old, new):
+    html = b"<html><body>exact application<script>own()</script>\n</body></html>\n"
+    served = html.replace(b"</body>", capture["tail"].encode() + b"</body>")
+    assert not matches_live(html, served.replace(old, new))
+
+
+def test_publisher_verifies_captured_challenge_and_beacon_tail(repo):
+    root, _ = repo
+    html = b"<html><body>exact application\n</body></html>"
+    (root / "dashboard/index.html").write_bytes(html)
+    tail = CAPTURED_CF_TAILS[1]["tail"].encode()
+    with live(html.replace(b"</body>", tail + b"</body>")) as url:
+        result = run(root, url, FAKE_NO_CHANGE="1")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert state(root)["status"] == "success"
+    assert state(root)["stage"] == "verified"
+
+
 def sqlite_bytes(path, value):
     if path.exists():
         path.unlink()
