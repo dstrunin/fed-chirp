@@ -1388,8 +1388,8 @@ table.rxn td.bucket-cell { text-align: center; }
       </div>
       <div class="hero__metaitem">
         <span class="eyebrow">Last regenerated</span>
-        <time id="regen-time" datetime="2026-11-05T23:37:05+00:00" class="v hero__metaitem--small">23:37 UTC</time>
-        <div class="vs">Nov 5, 2026</div>
+        <time id="regen-time" datetime="2026-11-06T23:36:40+00:00" class="v hero__metaitem--small">23:36 UTC</time>
+        <div class="vs">Nov 6, 2026</div>
       </div>
     </div>
   </div>
@@ -1575,114 +1575,6 @@ table.rxn td.bucket-cell { text-align: center; }
 </section>
 
 
-<section class="section" id="market-path">
-  <div class="section__head">
-    <div>
-      <div class="section__num">§ 03 — Market-implied path</div>
-      <h2 class="section__title">What futures<br/><em>price in</em>.</h2>
-    </div>
-    <p class="section__lede">
-      The fed funds futures curve, broken into per-meeting probabilities via
-      step-path / FedWatch math. Compared against the latest combined Fed-speak
-      score to surface gaps. as of 2026-11-05.
-    </p>
-  </div>
-  <div class="path__rates">
-        <div class="path__row">
-          <div class="eyebrow">Effective fed funds rate (current)</div>
-          <div class="path__rate"><strong>3.880%</strong>
-            
-          </div>
-        </div>
-        <div class="path__row">
-          <div class="eyebrow">Market-implied, 6 months out</div>
-          <div class="path__rate"><strong>4.170%</strong><span class="path__delta t-hawk">+29.0 bp vs current</span>
-            
-          </div>
-        </div>
-        <div class="path__row">
-          <div class="eyebrow">Market-implied, 12 months out</div>
-          <div class="path__rate"><strong>4.245%</strong><span class="path__delta t-hawk">+36.5 bp vs current</span>
-            
-          </div>
-        </div></div>
-  
-    <div class="path__gap">
-      <div class="eyebrow">Gap · Fed-speak vs market</div>
-      <div class="path__gap-row">
-        <span class="path__gap-pair">Fed-speak (meeting 2026-10-28)
-          <span class="t-hawk">+0.95</span></span>
-        <span class="path__gap-pair">Market score
-          <span class="t-hawk">+0.37</span></span>
-      </div>
-      <div class="path__gap-bottom">
-        <span class="path__gap-delta t-hawk">+0.58</span>
-        <span class="path__gap-phrase">Fed-speak more hawkish than market</span>
-      </div>
-    </div>
-  
-    <h3 class="path__h3">Per-meeting probability buckets</h3>
-    <div class="rxn-wrap">
-      <table class="rxn cards">
-        <thead><tr>
-          <th class="rxn__meeting">Meeting</th>
-          <th class="rxn__th">Implied rate after</th>
-          <th class="rxn__th">Δ at meeting</th>
-          <th class="rxn__th">Cut 100 bp</th><th class="rxn__th">Cut 75 bp</th><th class="rxn__th">Cut 50 bp</th><th class="rxn__th">Cut 25 bp</th><th class="rxn__th">Hold</th><th class="rxn__th">Hike 25 bp</th><th class="rxn__th">Hike 50 bp</th><th class="rxn__th">Hike 75 bp</th><th class="rxn__th">Hike 100 bp</th>
-        </tr></thead>
-        <tbody>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2026-12-09</td>
-                  <td data-label="Implied rate after"><strong>4.031%</strong></td>
-                  <td data-label="Δ at meeting" class="t-dove">+15.3 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-mod" data-label="Hold">39%</td><td class="bucket-cell bucket-strong" data-label="Hike 25 bp">61%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-01-27</td>
-                  <td data-label="Implied rate after"><strong>4.065%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+3.4 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">86%</td><td class="bucket-cell bucket-weak" data-label="Hike 25 bp">14%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-03-17</td>
-                  <td data-label="Implied rate after"><strong>4.138%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+7.3 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">71%</td><td class="bucket-cell bucket-mod" data-label="Hike 25 bp">29%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-04-28</td>
-                  <td data-label="Implied rate after"><strong>4.170%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+3.2 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">87%</td><td class="bucket-cell bucket-weak" data-label="Hike 25 bp">13%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-06-09</td>
-                  <td data-label="Implied rate after"><strong>4.224%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+5.4 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">78%</td><td class="bucket-cell bucket-mod" data-label="Hike 25 bp">22%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-07-28</td>
-                  <td data-label="Implied rate after"><strong>4.230%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+0.6 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">98%</td><td class="bucket-cell bucket-weak" data-label="Hike 25 bp">2%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-09-15</td>
-                  <td data-label="Implied rate after"><strong>4.256%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">+2.6 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 25 bp">0%</td><td class="bucket-cell bucket-strong" data-label="Hold">89%</td><td class="bucket-cell bucket-weak" data-label="Hike 25 bp">11%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr>
-                <tr>
-                  <td data-label="Meeting" class="rxn__meeting">2027-10-27</td>
-                  <td data-label="Implied rate after"><strong>4.245%</strong></td>
-                  <td data-label="Δ at meeting" class="t-neutral">-1.1 bp</td>
-                  <td class="bucket-cell bucket-zero" data-label="Cut 100 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Cut 50 bp">0%</td><td class="bucket-cell bucket-weak" data-label="Cut 25 bp">5%</td><td class="bucket-cell bucket-strong" data-label="Hold">95%</td><td class="bucket-cell bucket-zero" data-label="Hike 25 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 50 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 75 bp">0%</td><td class="bucket-cell bucket-zero" data-label="Hike 100 bp">0%</td>
-                </tr></tbody>
-      </table>
-    </div>
-</section>
-
 
 <section class="section section--paper2" id="committee">
   <div class="section__head">
@@ -1702,7 +1594,7 @@ table.rxn td.bucket-cell { text-align: center; }
     </div>
     <div>
       <div class="eyebrow">Stdev of speaker means</div>
-      <div class="strip__big">0.28</div>
+      <div class="strip__big">0.29</div>
     </div>
     <div>
       <div class="eyebrow">Hawk pole · 90d</div>
@@ -1722,16 +1614,16 @@ table.rxn td.bucket-cell { text-align: center; }
         <span class="pscore t-hawk">+1.90</span>
       </div>
       <div class="camp__row">
+        <div><span class="pname">Beth M. Hammack</span><span class="role">CLE</span></div>
+        <span class="pscore t-hawk">+1.70</span>
+      </div>
+      <div class="camp__row">
         <div><span class="pname">Anna Paulson</span><span class="role">PHI</span></div>
         <span class="pscore t-hawk">+1.70</span>
       </div>
       <div class="camp__row">
         <div><span class="pname">Jeffrey R. Schmid</span><span class="role">KC</span></div>
         <span class="pscore t-hawk">+1.70</span>
-      </div>
-      <div class="camp__row">
-        <div><span class="pname">Beth M. Hammack</span><span class="role">CLE</span></div>
-        <span class="pscore t-hawk">+1.60</span>
       </div>
       <div class="camp__row">
         <div><span class="pname">Susan M. Collins</span><span class="role">BOS</span></div>
@@ -1770,7 +1662,7 @@ table.rxn td.bucket-cell { text-align: center; }
         
         <svg viewBox="0 0 220 36" style="width:100%;height:48px;margin-top:8px;">
           <line x1="0" y1="18" x2="220" y2="18" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 3"/>
-          <polyline fill="none" stroke="var(--ink)" stroke-width="1.5" points="0,5 2,5 5,5 7,5 10,5 12,5 15,5 17,5 20,5 22,5 24,5 27,5 29,5 32,5 34,5 37,5 39,5 42,5 44,5 46,3 49,3 51,13 54,13 56,13 59,13 61,13 64,11 66,11 68,11 71,11 73,11 76,11 78,11 81,11 83,11 86,11 88,11 90,11 93,11 95,11 98,11 100,11 103,11 105,11 108,11 110,11 112,11 115,12 117,12 120,12 122,12 125,12 127,12 130,12 132,16 134,16 137,17 139,17 142,17 144,18 147,18 149,18 152,18 154,18 156,18 159,18 161,18 164,18 166,19 169,20 171,20 174,20 176,20 178,20 181,20 183,20 186,20 188,20 191,20 193,20 196,20 198,20 200,20 203,20 205,20 208,20 210,20 213,20 215,20 218,20 220,20"/>
+          <polyline fill="none" stroke="var(--ink)" stroke-width="1.5" points="0,5 2,5 5,5 7,5 10,5 12,5 15,5 17,5 20,5 22,5 24,5 27,5 29,5 32,5 34,5 37,5 39,5 42,5 44,3 46,3 49,13 51,13 54,13 56,13 59,13 61,11 64,11 66,11 68,11 71,11 73,11 76,11 78,11 81,11 83,11 86,11 88,11 90,11 93,11 95,11 98,11 100,11 103,11 105,11 108,11 110,11 112,12 115,12 117,12 120,12 122,12 125,12 127,12 130,16 132,16 134,17 137,17 139,17 142,18 144,18 147,18 149,18 152,18 154,18 156,18 159,18 161,18 164,19 166,20 169,20 171,20 174,20 176,20 178,20 181,20 183,20 186,20 188,20 191,20 193,20 196,20 198,20 200,20 203,20 205,20 208,20 210,20 213,20 215,20 218,20 220,20"/>
           <circle cx="220" cy="20" r="3" fill="var(--ink)"/>
         </svg>
       </div>
